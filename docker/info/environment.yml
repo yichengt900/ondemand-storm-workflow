@@ -1,0 +1,14 @@
+name: icogsc
+channels:
+  - conda-forge
+dependencies:
+  - cartopy
+  - cfunits
+  - gdal
+  - geopandas
+  - geos
+  - proj
+  - pygeos
+  - pyproj
+  - python=3.9
+  - shapely>=1.8

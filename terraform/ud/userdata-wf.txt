@@ -1,0 +1,3 @@
+#!/bin/bash
+
+echo ECS_CLUSTER=odssm-wf >> /etc/ecs/ecs.config

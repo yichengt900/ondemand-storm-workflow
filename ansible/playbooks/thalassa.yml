@@ -1,0 +1,5 @@
+---
+
+- hosts: thalassa
+  roles:
+    - thalassa
