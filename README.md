@@ -376,7 +376,50 @@ In `main/.env` update `SCHISM_NPROCS` value to the number of available physical 
  ```
 
 ## References
+- Pringle, W. J., Mani, S., Sargsyan, K., Moghimi, S., Zhang, Y. J.,
+Khazaei, B., Myers, E. (January 2023).
+_Surrogate-Assisted Bayesian Uncertainty Quantification for
+Hurricane-Surge Coastal Flood Model Hindcasts_
+[Conference presentation].
+American Meteorological Society 103rd Annual Meeting 2023, Denver, CO
+
+- Moghimi, S., Seroka, G., Funakoshi, Y., Mani, S., Yang, Z.,
+Velissariou, P., Pringle, W. J., Khazaei, B., Myers, E.,
+Pe'eri S. (January 2023).
+_NOAA National Ocean Service Storm Surge Modeling Infrastructure:
+An update on the research, research-to-operation and operational
+activities_
+[Conference presentation].
+American Meteorological Society 103rd Annual Meeting 2023, Denver, CO
+
+- Mani, S., Moghimi, S., Cui, L., Wang, Z., Zhang, Y. J., Lopez, J., 
+Myers, E, Cockerill, T., Pe’eri, S. (2022).
+_On-demand automated storm surge modeling including inland hydrology effects_
+(NOAA Technical Memorandum NOS CS 52).
+United States. Office of Coast Survey. Coast Survey Development Laboratory (U.S.).
 https://repository.library.noaa.gov/view/noaa/47926
+
+- Mani, S., Moghimi, S., Zhang, Y. J., Cui, L., Wang, Z., Lopez, J., Myers E., Pe’eri S., Cockerill T. (Decemeber 2022).
+_Multiplatform Automated On-demand Modeling System for Coastal
+Storm Surge Including Inland Hydrology Extremes_
+[Poster session].
+American Geophysical Union Fall Meeting 2022, Chicago, IL
+
+- Mani, S., Calzada, J., Moghimi, S., Zhang, Y. J., Lopez, J.,
+MacLaughlin, T., Snyder, L., Myers, E., Pe'eri, S., Cockerill, T.,
+Stubbs , J., Hammock, C. (February 2022).
+_On-Demand On-Cloud Automated Mesh Generation for Coastal Modeling Applications_
+[Conference online presentation].
+Ocean Sciences Meeting 2022, Hawaii
+
+- Mani, S., Calzada, J. R., Moghimi, S., Zhang, Y. J., Myers, E., Pe’eri, S. (2021)
+_OCSMesh: a data-driven automated unstructured mesh generation software
+for coastal ocean modeling_
+(NOAA Technical Memorandum NOS CS 47).
+Coast Survey Development Laboratory (U.S.).
+https://doi.org/10.25923/csba-m072
+
+
 
 
 ##
