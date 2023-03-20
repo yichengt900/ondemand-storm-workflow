@@ -46,6 +46,7 @@ RUN \
         -DNetCDF_C_LIBRARY=$(nc-config --libdir)/libnetcdf.so \
         -DNetCDF_INCLUDE_DIR=$(nc-config --includedir) \
         -DUSE_PAHM=TRUE \
+        -DUSE_WWM=TRUE \
         -DCMAKE_Fortran_FLAGS_RELEASE="-O2 -ffree-line-length-none -fallow-argument-mismatch" && \
     make -j8 && \
     mv bin/* -t /usr/bin/ && \

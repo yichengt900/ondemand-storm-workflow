@@ -62,7 +62,10 @@ function _compile {
         -DNetCDF_LIBRARIES=$NetCDF_LIBRARIES \
         -DNetCDF_FORTRAN_DIR=$NetCDF_FORTRAN_DIR \
         -DTVD_LIM=$TVD_LIM \
-        -DUSE_PAHM=TRUE
+        -DUSE_PAHM=TRUE \
+        -DUSE_WWM=TRUE \
+        -DCMAKE_C_FLAGS="-no-multibyte-chars" \
+        -DCMAKE_CXX_FLAGS="-no-multibyte-chars"
 
     #gnu make
     make -j 6

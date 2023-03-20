@@ -25,6 +25,7 @@ from tasks.params import (
     param_ensemble_n_perturb, param_hr_prelandfall,
     param_ensemble_sample_rule,
     param_past_forecast,
+    param_wind_coupling,
 )
 from tasks.infra import ContainerInstance, task_add_ecs_attribute_for_ec2
 from tasks.jobs import (
@@ -260,6 +261,11 @@ info_flow_ecs_task_details = {
             _use_if(param_ensemble, 
                 True,
                 "nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb"
+            ),
+            _use_if_and(
+                param_ensemble, True,
+                param_wind_coupling, True,
+                value="--use-wwm"
             ),
             # Common arguments
             "--date-range-file",
