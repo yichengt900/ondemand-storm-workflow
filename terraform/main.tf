@@ -579,7 +579,7 @@ resource "aws_ecs_task_definition" "odssm-prep-task" {
     container_definitions = jsonencode([
       {
         name = "prep"
-        image = "${aws_ecr_repository.odssm-repo["odssm-prep"].repository_url}:v0.16"
+        image = "${aws_ecr_repository.odssm-repo["odssm-prep"].repository_url}:v0.17"
 
         essential = true
 
@@ -625,7 +625,7 @@ resource "aws_ecs_task_definition" "odssm-solve-task" {
     container_definitions = jsonencode([
       {
         name = "solve"
-        image = "${aws_ecr_repository.odssm-repo["odssm-solve"].repository_url}:v0.9"
+        image = "${aws_ecr_repository.odssm-repo["odssm-solve"].repository_url}:v0.10"
 
         essential = true
 

@@ -26,6 +26,10 @@ from pyschism.mesh import Hgrid
 from pyschism.forcing import NWM
 from ensembleperturbation.perturbation.atcf import perturb_tracks
 
+
+import wwm
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -40,6 +44,7 @@ def main(args):
     nwm_file = EFS_MOUNT_POINT / args.nwm_file
     mesh_dir = EFS_MOUNT_POINT / args.mesh_directory
     hr_prelandfall = args.hours_before_landfall
+    use_wwm = args.use_wwm
 
     workdir = out_dir
     mesh_file = mesh_dir / 'mesh_w_bdry.grd'
@@ -191,6 +196,9 @@ def main(args):
         'parallel': True
     })
 
+    if use_wwm:
+        wwm.setup_wwm(mesh_file, workdir)
+
 
 def parse_arguments():
     argument_parser = ArgumentParser()
@@ -248,6 +256,9 @@ def parse_arguments():
     )
     argument_parser.add_argument(
         "-b", "--hours-before-landfall", type=int
+    )
+    argument_parser.add_argument(
+        "--use-wwm", action="store_true"
     )
 
     argument_parser.add_argument(

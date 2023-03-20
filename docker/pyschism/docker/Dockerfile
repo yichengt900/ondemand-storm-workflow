@@ -47,10 +47,6 @@ RUN git clone https://github.com/schism-dev/pyschism.git && \
     conda run -p $ENV_PREFIX --no-capture-output \
         pip install "ensembleperturbation>=1.1.2"
 
-RUN mkdir -p $PROJECT_DIR/scripts
-COPY docker/*.py ${PROJECT_DIR}/scripts/
-ENV PYTHONPATH ${PROJECT_DIR}/scripts/
-
 ENV CONDA_DIR /opt/conda
 
 RUN conda clean --all
@@ -60,6 +56,11 @@ RUN mkdir -p $PROJECT_DIR/io
 RUN chown -R $UID:$GID $HOME
 
 USER $USER
+
+RUN mkdir -p $PROJECT_DIR/scripts
+COPY docker/*.py ${PROJECT_DIR}/scripts/
+COPY docker/refs ${PROJECT_DIR}/refs/
+ENV PYTHONPATH ${PROJECT_DIR}/scripts/
 
 RUN mkdir -p $HOME/.local/share/pyschism
 
