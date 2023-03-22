@@ -5,13 +5,15 @@ from prefect.tasks.files.operations import Glob
 
 from conf import PW_S3, PW_S3_PREFIX
 from tasks.params import (
-        param_storm_name, param_storm_year, param_run_id,
-        param_subset_mesh, param_ensemble,
-        param_mesh_hmax,
-        param_mesh_hmin_low, param_mesh_rate_low,
-        param_mesh_trans_elev,
-        param_mesh_hmin_high, param_mesh_rate_high,
-        param_use_rdhpcs_post)
+    param_storm_name, param_storm_year, param_run_id,
+    param_subset_mesh, param_ensemble,
+    param_mesh_hmax,
+    param_mesh_hmin_low, param_mesh_rate_low,
+    param_mesh_trans_elev,
+    param_mesh_hmin_high, param_mesh_rate_high,
+    param_use_rdhpcs_post,
+    param_wind_coupling,
+)
 from tasks.jobs import (
     task_submit_slurm,
     task_format_mesh_slurm,
@@ -33,12 +35,14 @@ from tasks.infra import (
     task_start_rdhpcs_cluster,
     task_stop_rdhpcs_cluster)
 from tasks.utils import (
-        task_check_param_true,
-        task_bundle_params, task_get_run_tag,
-        task_replace_tag_in_template,
-        task_convert_str_to_path,
-        task_return_value_if_param_true,
-        task_return_value_if_param_false)
+    task_check_param_true,
+    task_bundle_params, task_get_run_tag,
+    task_replace_tag_in_template,
+    task_convert_str_to_path,
+    task_return_value_if_param_true,
+    task_return_value_if_param_false,
+    task_return_this_if_param_true_else_that,
+)
 from flows.utils import (
         LocalPWFlow, RDHPCSMeshFlow, RDHPCSSolveFlow, flow_dependency)
 
@@ -164,7 +168,7 @@ def make_flow_mesh_rdhpcs(mesh_pw_task_flow):
                         mesh_cutoff=param_mesh_trans_elev,
                         mesh_hmin_high=param_mesh_hmin_high,
                         mesh_rate_high=param_mesh_rate_high,
-                        subset_mesh=param_subset_mesh
+                        subset_mesh=param_subset_mesh,
                 )
         )
 
@@ -216,6 +220,11 @@ def make_flow_solve_rdhpcs_pw_task():
             result_after_single_run = task_submit_slurm(
                 command=task_format_schism_slurm(
                     run_path=result_rundir,
+                    schism_exec=task_return_this_if_param_true_else_that(
+                        param_wind_coupling,
+                        'pschism_WWM_PAHM_TVD-VL',
+                        'pschism_PAHM_TVD-VL',
+                    ),
                     upstream_tasks=[result_s3_to_lustre]))
 
             result_wait_slurm_done_1 = task_wait_slurm_done(
@@ -231,6 +240,7 @@ def make_flow_solve_rdhpcs_pw_task():
             result_after_coldstart = task_submit_slurm(
                 command=task_format_schism_slurm(
                     run_path=result_ensemble_dir + '/spinup',
+                    schism_exec='pschism_PAHM_TVD-VL',
                     upstream_tasks=[result_s3_to_lustre]))
             result_wait_slurm_done_spinup = task_wait_slurm_done(
                 job_id=result_after_coldstart)
@@ -246,6 +256,11 @@ def make_flow_solve_rdhpcs_pw_task():
                 command=task_format_schism_slurm.map(
                     run_path=_task_pathlist_to_strlist(
                         hotstart_dirs, rel_to='/lustre'),
+                    schism_exec=unmapped(task_return_this_if_param_true_else_that(
+                        param_wind_coupling,
+                        'pschism_WWM_PAHM_TVD-VL',
+                        'pschism_PAHM_TVD-VL',
+                    )),
                     upstream_tasks=[unmapped(result_wait_slurm_done_spinup)]))
             result_wait_slurm_done_2 = task_wait_slurm_done.map(
                 job_id=result_after_hotstart)
@@ -313,7 +328,8 @@ def make_flow_solve_rdhpcs(solve_pw_task_flow):
                         name=param_storm_name,
                         year=param_storm_year,
                         run_id=param_run_id,
-                        ensemble=param_ensemble
+                        ensemble=param_ensemble,
+                        couple_wind=param_wind_coupling,
                     )
                 )
 

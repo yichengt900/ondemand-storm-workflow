@@ -63,7 +63,6 @@ function _compile {
         -DNetCDF_FORTRAN_DIR=$NetCDF_FORTRAN_DIR \
         -DTVD_LIM=$TVD_LIM \
         -DUSE_PAHM=TRUE \
-        -DUSE_WWM=TRUE \
         -DCMAKE_C_FLAGS="-no-multibyte-chars" \
         -DCMAKE_CXX_FLAGS="-no-multibyte-chars"
 
@@ -71,6 +70,27 @@ function _compile {
     make -j 6
 
     mkdir -p $install_dir
+    cp -L -r bin/ $install_dir
+
+    rm -rf *
+    cmake ../src \
+        -DCMAKE_Fortran_COMPILER=$CMAKE_Fortran_COMPILER \
+        -DCMAKE_CXX_COMPILER=$CMAKE_CXX_COMPILER \
+        -DCMAKE_C_COMPILER=$CMAKE_C_COMPILER \
+        -DMPI_HEADER_PATH=$MPI_HEADER_PATH \
+        -DNetCDF_C_DIR=$NetCDF_C_DIR \
+        -DNetCDF_INCLUDE_DIR=$NetCDF_INCLUDE_DIR \
+        -DNetCDF_LIBRARIES=$NetCDF_LIBRARIES \
+        -DNetCDF_FORTRAN_DIR=$NetCDF_FORTRAN_DIR \
+        -DTVD_LIM=$TVD_LIM \
+        -DUSE_PAHM=TRUE \
+        -DUSE_WWM=TRUE \
+        -DCMAKE_C_FLAGS="-no-multibyte-chars" \
+        -DCMAKE_CXX_FLAGS="-no-multibyte-chars"
+
+    #gnu make
+    make -j 6
+
     cp -L -r bin/ $install_dir
 
     if [ -f $link_path ]; then

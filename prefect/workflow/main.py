@@ -119,6 +119,7 @@ def _make_workflow():
                 ensemble=param_ensemble,
                 hr_before_landfall=param_hr_prelandfall,
                 past_forecast=param_past_forecast,
+                couple_wind=param_wind_coupling,
                 )
 
         result_bundle_params_2 = task_bundle_params(

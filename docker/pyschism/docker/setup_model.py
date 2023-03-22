@@ -28,6 +28,8 @@ from pyschism.mesh import Hgrid, gridgr3
 from pyschism.mesh.fgrid import ManningsN
 from pyschism.stations import Stations
 
+import wwm
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -404,6 +406,8 @@ def setup_schism_model(
         pass
     ## end of workaround
 
+    if use_wwm:
+        wwm.setup_wwm(mesh_file, schism_dir, ensemble=False)
 
     logger.info("Setup done")
 
@@ -424,6 +428,7 @@ def main(args):
     )
     tpxo_dir = EFS_MOUNT_POINT / args.tpxo_dir
     nwm_dir = EFS_MOUNT_POINT / args.nwm_dir
+    use_wwm = args.use_wwm
 
     if TPXO_LINK_PATH.is_dir():
         shutil.rmtree(TPXO_LINK_PATH)
@@ -506,6 +511,10 @@ if __name__ == '__main__':
         "--out",
         help="path to the setup output (solver input) directory",
         type=pathlib.Path
+    )
+
+    argument_parser.add_argument(
+        "--use-wwm", action="store_true"
     )
 
     parser.add_argument(

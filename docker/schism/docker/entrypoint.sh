@@ -13,7 +13,7 @@ date
 set -ex
 
 mkdir -p outputs
-mpirun -np $SCHISM_NPROCS pschism_WWM_PAHM_TVD-VL 4
+mpirun -np $SCHISM_NPROCS $2 4
 
 
 echo "Combining outputs..."
