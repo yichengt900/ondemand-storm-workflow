@@ -13,7 +13,7 @@ from pyschism.param.param import Param
 
 REFS = Path('~').expanduser() / 'app/refs'
 
-def setup_wwm(mesh_file: Path, ensemble_dir: Path):
+def setup_wwm(mesh_file: Path, setup_dir: Path, ensemble: bool):
     '''Output is
         - hgrid_WWM.gr3
         - param.nml
@@ -21,8 +21,11 @@ def setup_wwm(mesh_file: Path, ensemble_dir: Path):
         - wwminput.nml
     '''
 
-    spinup_dir = ensemble_dir/'spinup'
-    runs_dir = ensemble_dir.glob('runs/*')
+    
+    runs_dir = [setup_dir]
+    if ensemble:
+        spinup_dir = setup_dir/'spinup'
+        runs_dir = setup_dir.glob('runs/*')
 
     schism_grid = Gr3.open(mesh_file, crs=4326)
     wwm_grid = break_quads(schism_grid)

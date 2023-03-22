@@ -33,7 +33,7 @@ set -ex
 pushd /lustre/${STORM_PATH}
 mkdir -p outputs
 #srun --mpi=pmi2 pschism_TVD-VL 4
-mpirun --ppn ${SLURM_TASKS_PER_NODE} pschism_WWM_PAHM_TVD-VL 4
+mpirun --ppn ${SLURM_TASKS_PER_NODE} ${SCHISM_EXEC} 4
 
 if [ $? -eq 0 ]; then
     echo "Combining outputs..."

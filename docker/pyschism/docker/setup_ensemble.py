@@ -26,7 +26,6 @@ from pyschism.mesh import Hgrid
 from pyschism.forcing import NWM
 from ensembleperturbation.perturbation.atcf import perturb_tracks
 
-
 import wwm
 
 
@@ -175,7 +174,7 @@ def main(args):
         'forcings': forcing_configurations,
         'perturbations': perturbations,
         'platform': platform,
-        'schism_executable': 'pschism_PAHM_TVD-VL'
+#        'schism_executable': 'pschism_PAHM_TVD-VL'
     }
 
     run_configuration = SCHISMRunConfiguration(
@@ -197,7 +196,7 @@ def main(args):
     })
 
     if use_wwm:
-        wwm.setup_wwm(mesh_file, workdir)
+        wwm.setup_wwm(mesh_file, workdir, ensemble=True)
 
 
 def parse_arguments():
