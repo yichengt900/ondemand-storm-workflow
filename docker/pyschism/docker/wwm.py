@@ -84,8 +84,8 @@ def get_wwm_params(run_name, schism_nml) -> f90nml.Namelist:
     )
     end_time = begin_time + timedelta(days=schism_nml['core']['rnday'])
     delta_t = schism_nml['core']['dt']
-    mdc = schism_nml['core']['msc2']
-    msc = schism_nml['core']['mdc2']
+    mdc = schism_nml['core']['mdc2']
+    msc = schism_nml['core']['msc2']
     nstep_wwm = schism_nml['opt']['nstep_wwm']
 
     time_fmt = '%Y%m%d.%H%M%S'
@@ -222,7 +222,8 @@ def update_schism_params(path: Path) -> f90nml.Namelist:
     opt_nml['iwbl'] = 0
     opt_nml['hmin_radstress'] = 1.
     # TODO: Revisit for spinup support
-    opt_nml['nrampwafo'] = 0
+    # NOTE: Issue 7#issuecomment-1482848205 oceanmodeling fork
+#    opt_nml['nrampwafo'] = 0
     opt_nml['drampwafo'] = 0.
     opt_nml['turbinj'] = 0.15
     opt_nml['turbinjds'] = 1.0
