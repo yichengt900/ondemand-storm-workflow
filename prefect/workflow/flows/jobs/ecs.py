@@ -25,6 +25,8 @@ from tasks.params import (
     param_ensemble_n_perturb, param_hr_prelandfall,
     param_ensemble_sample_rule,
     param_past_forecast,
+    param_wind_coupling,
+    param_schism_exec,
 )
 from tasks.infra import ContainerInstance, task_add_ecs_attribute_for_ec2
 from tasks.jobs import (
@@ -37,16 +39,18 @@ from tasks.jobs import (
     task_format_kill_timedout,
     task_check_docker_success)
 from tasks.utils import (
-        ECSTaskDetail,
-        task_check_param_true,
-        task_pylist_from_jsonlist,
-        task_get_run_tag,
-        task_get_flow_run_id,
-        task_bundle_params,
-        task_replace_tag_in_template,
-        task_convert_str_to_path,
-        task_return_value_if_param_true,
-        task_return_value_if_param_false)
+    ECSTaskDetail,
+    task_check_param_true,
+    task_pylist_from_jsonlist,
+    task_get_run_tag,
+    task_get_flow_run_id,
+    task_bundle_params,
+    task_replace_tag_in_template,
+    task_convert_str_to_path,
+    task_return_value_if_param_true,
+    task_return_value_if_param_false,
+    task_return_this_if_param_true_else_that
+)
 from flows.utils import LocalAWSFlow, flow_dependency, task_create_ecsrun_config
 
 
@@ -265,13 +269,15 @@ info_flow_ecs_task_details = {
             "--date-range-file",
             _tag('hurricanes/{tag}/setup/dates.csv'),
             "--tpxo-dir", 'tpxo',
+            _use_if(param_wind_coupling, True, "--use-wwm"),
             param_storm_name, param_storm_year],
         "setup",
         60, 180, ["CDSAPI_URL", "CDSAPI_KEY"]),
     "schism-run-aws-single": ECSTaskDetail(
         SCHISM_CLUSTER, SCHISM_TEMPLATE_ID, "odssm-solve", "solve", [
-            param_schism_dir
-        ],
+            param_schism_dir,
+            param_schism_exec
+            ],
         "SCHISM",
         60, 240, []),
     "viz-sta-html-aws": ECSTaskDetail(
@@ -426,7 +432,12 @@ def make_flow_solve_ecs_task(child_flow):
                         name=param_storm_name,
                         year=param_storm_year,
                         run_id=param_run_id,
-                        schism_dir=rundir
+                        schism_dir=rundir,
+                        schism_exec=task_return_this_if_param_true_else_that(
+                            param_wind_coupling,
+                            'pschism_WWM_PAHM_TVD-VL',
+                            'pschism_PAHM_TVD-VL',
+                        )
                     )
                 )
             )
@@ -456,7 +467,8 @@ def make_flow_solve_ecs_task(child_flow):
                         name=param_storm_name,
                         year=param_storm_year,
                         run_id=param_run_id,
-                        schism_dir=result_ensemble_dir + '/spinup'
+                        schism_dir=result_ensemble_dir + '/spinup',
+                        schism_exec='pschism_PAHM_TVD-VL',
                     ),
                     run_config=ecs_config,
                 )
@@ -472,6 +484,13 @@ def make_flow_solve_ecs_task(child_flow):
                         name=unmapped(param_storm_name),
                         year=unmapped(param_storm_year),
                         run_id=unmapped(param_run_id),
+                        schism_exec=unmapped(
+                            task_return_this_if_param_true_else_that(
+                                param_wind_coupling,
+                                'pschism_WWM_PAHM_TVD-VL',
+                                'pschism_PAHM_TVD-VL',
+                            )
+                        ),
                         schism_dir=_task_pathlist_to_strlist(
                             hotstart_dirs, rel_to='/efs'
                         )

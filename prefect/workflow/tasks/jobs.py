@@ -270,7 +270,7 @@ task_format_schism_slurm = StringFormatter(
     name="Prepare Slurm script to submit the batch job",
     template=" ".join(
         ["sbatch",
-         "--export=ALL,STORM_PATH=\"{run_path}\"",
+         "--export=ALL,STORM_PATH=\"{run_path}\",SCHISM_EXEC=\"{schism_exec}\"",
          "~/schism.sbatch"]
     )
 )

@@ -24,6 +24,7 @@ from tasks.params import (
         param_ensemble_n_perturb, param_hr_prelandfall,
         param_ensemble_sample_rule,
         param_past_forecast,
+        param_wind_coupling,
         )
 from tasks.data import (
         task_copy_s3_data, 
@@ -118,6 +119,7 @@ def _make_workflow():
                 ensemble=param_ensemble,
                 hr_before_landfall=param_hr_prelandfall,
                 past_forecast=param_past_forecast,
+                couple_wind=param_wind_coupling,
                 )
 
         result_bundle_params_2 = task_bundle_params(
@@ -142,6 +144,7 @@ def _make_workflow():
                 ensemble=param_ensemble,
                 ensemble_num_perturbations=param_ensemble_n_perturb,
                 hr_before_landfall=param_hr_prelandfall,
+                couple_wind=param_wind_coupling,
                 ensemble_sample_rule=param_ensemble_sample_rule,
         )
 
