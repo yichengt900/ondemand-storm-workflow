@@ -79,8 +79,6 @@ def main(args):
         # NOTE: Track taken from `StormEvent` object is up to now only.
         # See GitHub issue #57 for StormEvents
         track = VortexTrack(nhc_code, file_deck='a', advisories=[advisory])
-        windswath_dict = track.wind_swaths(wind_speed=34)
-        windswaths = windswath_dict[advisory]
 
         df_dt = pd.DataFrame(columns=['date_time'])
 
@@ -98,12 +96,16 @@ def main(args):
             ].track_start_time.iloc[-1]
 
             gdf_track = track.data[track.data.track_start_time == track_start]
+            # Append before track from previous forecasts:
+            gdf_track = pd.concat((
+                track.data[
+                    (track.data.track_start_time < track_start)
+                    & (track.data.forecast_hours == 0)
+                ],
+                gdf_track
+            ))
             df_dt['date_time'] = (track.start_date, track.end_date)
 
-            logger.info(f"Fetching {advisory} windswath...")
-            windswath = windswaths[
-                track_start.strftime("%Y%m%dT%H%M%S")
-            ]
 
             logger.info("Fetching water level measurements from COOPS stations...")
             coops_ssh = event.coops_product_within_isotach(
@@ -121,12 +123,6 @@ def main(args):
             # Put both dates as now(), for pyschism to setup forecast
             df_dt['date_time'] = (now, now)
 
-            logger.info(f"Fetching {advisory} windswath...")
-            latest_advistory_stamp = max(pd.to_datetime(list(windswaths.keys())))
-            windswath = windswaths[
-                latest_advistory_stamp.strftime("%Y%m%dT%H%M%S")
-            ]
-                
             coops_ssh = None
 
         # NOTE: Fake besttrack: Since PySCHISM supports "BEST" track
@@ -135,6 +131,14 @@ def main(args):
         gdf_track.advisory = 'BEST'
         gdf_track.forecast_hours = 0
         track = VortexTrack(storm=gdf_track, file_deck='b', advisories=['BEST'])
+
+        windswath_dict = track.wind_swaths(wind_speed=34)
+        windswaths = windswath_dict['BEST']  # Faked BEST
+        logger.info(f"Fetching {advisory} windswath...")
+        windswath_time = min(pd.to_datetime(list(windswaths.keys())))
+        windswath = windswaths[
+            windswath_time.strftime("%Y%m%dT%H%M%S")
+        ]
 
     else:
 

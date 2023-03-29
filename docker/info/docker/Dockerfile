@@ -35,11 +35,8 @@ RUN conda install mamba -n base -c conda-forge && \
     mamba env create --prefix $ENV_PREFIX --file /tmp/environment.yml --force && \
     mamba clean --all --yes
 
-RUN git clone https://github.com/oceanmodeling/stormevents && \
-    git -C stormevents checkout 2ebcc72 && \
-    conda run -p $ENV_PREFIX --no-capture-output \
-        pip install ./stormevents && \
-    rm -rf stormevents
+RUN conda run -p $ENV_PREFIX --no-capture-output \
+        pip install stormevents==2.1.2
 
 ENV CONDA_DIR /opt/conda
 
