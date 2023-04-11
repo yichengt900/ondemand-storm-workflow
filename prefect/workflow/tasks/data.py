@@ -7,22 +7,22 @@ from datetime import datetime, timezone
 import boto3
 import prefect
 from prefect import task
-from prefect.tasks.shell import ShellTask
+from prefect_shell import ShellOperation
 from prefect.tasks.templates import StringFormatter
 from prefect.engine.signals import SKIP
 
 from conf import LOG_STDERR, RESULT_S3, STATIC_S3, COMMIT_HASH, DOCKER_VERS
 
-task_copy_s3_data = ShellTask(
+task_copy_s3_data = ShellOperation(
     name="Copy s3 to efs",
-    command='\n'.join([
+    commands=[
         f"aws s3 sync s3://{STATIC_S3} /efs",
         "chown ec2-user:ec2-user -R /efs",
         "chmod 751 -R /efs",
-        ])
+        ]
 )
 
-@task(name="Initialize simulation directory")
+@task(name="init", description="Initialize simulation directory")
 def task_init_run(run_tag):
     root = pathlib.Path(f"/efs/hurricanes/{run_tag}/")
     root.mkdir()

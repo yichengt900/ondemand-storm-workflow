@@ -5,7 +5,8 @@ from collections import namedtuple
 import boto3
 import dunamai
 import yaml
-from prefect.run_configs.base import UniversalRun
+#from prefect.run_configs.base import UniversalRun
+from prefect.filesystems import S3
 
 def _get_git_version():
     version = dunamai.Version.from_git()
@@ -50,10 +51,10 @@ TERRAFORM_CONFIG_FILE = THIS_FILE.parent.parent/'vars_from_terraform'
 WORKFLOW_TAG_NAME = "Workflow Tag"
 INIT_FINI_LOCK = "/efs/.initfini.lock"
 
-run_cfg_local_aws_cred = UniversalRun(labels=['tacc-odssm-local'])
-run_cfg_local_pw_cred = UniversalRun(labels=['tacc-odssm-local-for-rdhpcs'])
-run_cfg_rdhpcsc_mesh_cluster = UniversalRun(labels=['tacc-odssm-rdhpcs-mesh-cluster'])
-run_cfg_rdhpcsc_schism_cluster = UniversalRun(labels=['tacc-odssm-rdhpcs-schism-cluster'])
+#run_cfg_local_aws_cred = UniversalRun(labels=['tacc-odssm-local'])
+#run_cfg_local_pw_cred = UniversalRun(labels=['tacc-odssm-local-for-rdhpcs'])
+#run_cfg_rdhpcsc_mesh_cluster = UniversalRun(labels=['tacc-odssm-rdhpcs-mesh-cluster'])
+#run_cfg_rdhpcsc_schism_cluster = UniversalRun(labels=['tacc-odssm-rdhpcs-schism-cluster'])
 
 # TODO: Make environment based configs dynamic
 pw_s3_cred = dict(
@@ -66,3 +67,9 @@ with open(TERRAFORM_CONFIG_FILE, 'r') as f:
 
 # TODO: Get from var file in conf
 log_group_name='odssm_ecs_task_docker_logs'
+
+wf_storage = S3(
+    bucket_path=S3_BUCKET + "/flows/main",
+    # Set creds in your local env
+)
+wf_storage.save("prefect-s3-block", overwrite=True)

@@ -12,3 +12,4 @@ dependencies:
   - dnspython
   - boto3
   - dunamai
+  - s3fs
