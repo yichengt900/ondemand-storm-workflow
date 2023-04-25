@@ -1,7 +1,8 @@
+#from prefect.infrastructure import Process
 from prefect.deployments import Deployment
 from prefect.filesystems import S3
 
-from flows.end_to_end import end_to_end_flow
+from end_to_end import end_to_end_flow
 
 
 wf_storage = S3.load("prefect-s3-block") # load a pre-defined block
@@ -10,6 +11,10 @@ deployment = Deployment.build_from_flow(
     flow=end_to_end_flow,
     name="End to end",
     work_queue_name="test",
+    path="/flows/ondemand/",
+#    infrastructure=Process(
+#        working_dir="/tmp/working"
+#    ),
     storage=wf_storage,
     parameters=dict(
         rdhpcs=False,
@@ -32,5 +37,4 @@ deployment = Deployment.build_from_flow(
 )
 
 if __name__ == "__main__":
-	deployment.apply()
-
+	deployment.apply(upload=True)

@@ -8,12 +8,12 @@ import yaml
 #from prefect.run_configs.base import UniversalRun
 from prefect.filesystems import S3
 
-def _get_git_version():
-    version = dunamai.Version.from_git()
-    ver_str = version.commit
-    if version.dirty:
-        ver_str = ver_str + ' + uncommitted'
-    return ver_str
+#def _get_git_version():
+#    version = dunamai.Version.from_git()
+#    ver_str = version.commit
+#    if version.dirty:
+#        ver_str = ver_str + ' + uncommitted'
+#    return ver_str
 
 def _get_docker_versions():
 
@@ -31,7 +31,7 @@ def _get_docker_versions():
     return version_dict
 
 # Version info
-COMMIT_HASH = _get_git_version()
+#COMMIT_HASH = _get_git_version()
 DOCKER_VERS = _get_docker_versions()
 
 # Constants
@@ -69,7 +69,7 @@ with open(TERRAFORM_CONFIG_FILE, 'r') as f:
 log_group_name='odssm_ecs_task_docker_logs'
 
 wf_storage = S3(
-    bucket_path=S3_BUCKET + "/flows/main",
+    bucket_path=S3_BUCKET,
     # Set creds in your local env
 )
 wf_storage.save("prefect-s3-block", overwrite=True)

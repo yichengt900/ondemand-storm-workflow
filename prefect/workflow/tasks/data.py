@@ -11,7 +11,7 @@ from prefect_shell import ShellOperation
 from prefect.tasks.templates import StringFormatter
 from prefect.engine.signals import SKIP
 
-from conf import LOG_STDERR, RESULT_S3, STATIC_S3, COMMIT_HASH, DOCKER_VERS
+from conf import LOG_STDERR, RESULT_S3, STATIC_S3, DOCKER_VERS
 
 task_copy_s3_data = ShellOperation(
     name="Copy s3 to efs",
@@ -36,7 +36,7 @@ def task_init_run(run_tag):
     run_info = {}
     run_info['start_date'] = now.strftime("%Y-%m-%d %H:%M:%S %Z")
     run_info['run_tag'] = run_tag
-    run_info['git_commit'] = COMMIT_HASH
+#    run_info['git_commit'] = COMMIT_HASH
     run_info['ecs_images'] = DOCKER_VERS
     run_info['prefect'] = {}
     run_info['prefect']['parameters'] = prefect.context.parameters
