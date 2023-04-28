@@ -4,7 +4,9 @@ channels:
   - defaults
 dependencies:
   - python=3.10
-  - prefect=1.4, <2
+  - prefect>=2
+  - prefect-aws
+  - prefect-shell
   - cloudpickle
   - ansible-core
   - terraform

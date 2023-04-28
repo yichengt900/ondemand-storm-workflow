@@ -17,25 +17,27 @@ from prefect import flow
 from prefect.filesystems import S3
 
 from conf import S3_BUCKET
-#from conf import PREFECT_PROJECT_NAME, INIT_FINI_LOCK
-#from tasks.data import (
-#    task_copy_s3_data, 
-#    task_init_run,
+from conf import PREFECT_PROJECT_NAME, INIT_FINI_LOCK
+from tasks.data import (
+    task_copy_s3_data, 
+    task_init_run,
 #    task_final_results_to_s3,
 #    task_cleanup_run,
 #    task_cache_to_s3,
 #    task_cleanup_efs
-#)
-#from tasks.utils import (
+)
+from tasks.utils import (
 #        task_check_param_true,
 #        task_bundle_params,
-#        task_get_flow_run_id,
-#        task_get_run_tag,
-#        FLock)
-#from flows.jobs.ecs import (
+        task_get_flow_run_id,
+        task_get_run_tag,
+        flock,
+)
+from flows.jobs.ecs import (
+        flow_sim_prep_info_aws,
 #        make_flow_generic_ecs_task,
 #        make_flow_solve_ecs_task
-#        )
+)
 #from flows.jobs.pw import(
 #        make_flow_mesh_rdhpcs_pw_task,
 #        make_flow_mesh_rdhpcs,
@@ -119,88 +121,42 @@ def end_to_end_flow(
     mesh_rate_high: float,
 ):
 
+    flow_run_id = task_get_flow_run_id()
+    run_tag = task_get_run_tag(name, year, flow_run_id)
+
+    # TODO: This is not as strong in cleanup as old resource_manager
+    with flock(INIT_FINI_LOCK):
+        # This is a shell operation
+        result_copy_task = task_copy_s3_data()
+        result_init_run = task_init_run(
+                run_tag, wait_for=[result_copy_task])
+
+    result_get_info = flow_sim_prep_info_aws(
+        name=name,
+        year=year,
+        past_forecast=past_forecast,
+        hr_before_landfall=hr_before_landfall,
+        tag=run_tag,
+    )
+
     pprint(locals())
 
 
 
 if __name__ == "__main__":
-    end_to_end()
+    end_to_end_flow()
 
 
-def _make_workflow():
+def OLD_make_workflow():
     # Create flow objects
-    flow_sim_prep_info_aws = make_flow_generic_ecs_task("sim-prep-info-aws")
-    flow_sim_prep_mesh_aws = make_flow_generic_ecs_task("sim-prep-mesh-aws")
-    flow_sim_prep_setup_aws = make_flow_generic_ecs_task("sim-prep-setup-aws")
     flow_mesh_rdhpcs_pw_task = make_flow_mesh_rdhpcs_pw_task()
     flow_mesh_rdhpcs = make_flow_mesh_rdhpcs(flow_mesh_rdhpcs_pw_task)
-    flow_schism_single_run_aws = make_flow_generic_ecs_task("schism-run-aws-single")
     flow_schism_ensemble_run_aws = make_flow_solve_ecs_task(flow_schism_single_run_aws)
     flow_solve_rdhpcs_pw_task = make_flow_solve_rdhpcs_pw_task()
     flow_solve_rdhpcs = make_flow_solve_rdhpcs(flow_solve_rdhpcs_pw_task)
-    flow_sta_html_aws = make_flow_generic_ecs_task("viz-sta-html-aws")
-    flow_cmb_ensemble_aws = make_flow_generic_ecs_task(
-        "viz-cmb-ensemble-aws"
-    )
-    flow_ana_ensemble_aws = make_flow_generic_ecs_task(
-        "viz-ana-ensemble-aws"
-    )
 
 
     with LocalAWSFlow("end-to-end") as flow_main:
-
-        result_flow_run_id = task_get_flow_run_id()
-
-        result_run_tag = task_get_run_tag(
-            param_storm_name, param_storm_year, result_flow_run_id)
-
-        result_is_rdhpcs_on = task_check_param_true(param_use_rdhpcs)
-        result_is_ensemble_on = task_check_param_true(param_ensemble)
-        result_is_rdhpcspost_on = task_check_param_true(param_use_rdhpcs_post)
-
-        with FLock(INIT_FINI_LOCK, task_args={'name': 'Sync init'}):
-            result_copy_task = task_copy_s3_data()
-            result_init_run = task_init_run(
-                    result_run_tag, upstream_tasks=[result_copy_task])
-
-        result_bundle_params_1 = task_bundle_params(
-                name=param_storm_name,
-                year=param_storm_year,
-                rdhpcs=param_use_rdhpcs,
-                rdhpcs_post=param_use_rdhpcs_post,
-                run_id=result_flow_run_id,
-                parametric_wind=param_use_parametric_wind,
-                ensemble=param_ensemble,
-                hr_before_landfall=param_hr_prelandfall,
-                past_forecast=param_past_forecast,
-                couple_wind=param_wind_coupling,
-                )
-
-        result_bundle_params_2 = task_bundle_params(
-                name=param_storm_name,
-                year=param_storm_year,
-                rdhpcs=param_use_rdhpcs,
-                run_id=result_flow_run_id,
-                subset_mesh=param_subset_mesh,
-                mesh_hmax=param_mesh_hmax,
-                mesh_hmin_low=param_mesh_hmin_low,
-                mesh_rate_low=param_mesh_rate_low,
-                mesh_cutoff=param_mesh_trans_elev,
-                mesh_hmin_high=param_mesh_hmin_high,
-                mesh_rate_high=param_mesh_rate_high
-                )
-
-        result_bundle_params_3 = task_bundle_params(
-                name=param_storm_name,
-                year=param_storm_year,
-                run_id=result_flow_run_id,
-                parametric_wind=param_use_parametric_wind,
-                ensemble=param_ensemble,
-                ensemble_num_perturbations=param_ensemble_n_perturb,
-                hr_before_landfall=param_hr_prelandfall,
-                couple_wind=param_wind_coupling,
-                ensemble_sample_rule=param_ensemble_sample_rule,
-        )
 
         after_sim_prep_info = flow_dependency(
                 flow_name=flow_sim_prep_info_aws.name,

@@ -6,11 +6,12 @@ from functools import partial
 import boto3
 import prefect
 from prefect import task
-from prefect.tasks.shell import ShellTask
-from prefect.tasks.templates import StringFormatter
-from prefect.tasks.aws.client_waiter import AWSClientWait 
-from prefect.triggers import any_failed, all_finished
-from prefect.engine.signals import FAIL
+from prefect_aws import client_waiter
+#from prefect.tasks.shell import ShellTask
+#from prefect.tasks.templates import StringFormatter
+#from prefect.tasks.aws.client_waiter import AWSClientWait 
+#from prefect.triggers import any_failed, all_finished
+#from prefect.engine.signals import FAIL
 
 import pw_client
 from conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME, log_group_name
@@ -28,7 +29,7 @@ shell_run_task = " ".join([
 #    "--count 5" # TEST: run and stop multiple tasks
     ])
 
-@task(name="Prepare run command")
+@task(name='prep-ecs-cmd', description="Prepare ECS run command")
 def task_format_start_task(template, **kwargs):
     aux = {}
     cluster = kwargs['cluster']
@@ -93,22 +94,9 @@ def task_format_start_task(template, **kwargs):
 
     return formatted_cmd
 
-task_start_ecs_task = ShellTask(
-    name='Run ECS task',
-    return_all=True, # Need json list
-    log_stderr=LOG_STDERR,
-)
-
-# NOTE: We cannot use CLI aws ecs wait because it timesout after
-# 100 attempts made 6 secs apart.
-task_client_wait_for_ecs = AWSClientWait(
-    name='Wait for ECS task',
-    client='ecs',
-    waiter_name='tasks_stopped'
-)
 
 
-@task(name="Retrieve task logs", trigger=all_finished)
+@task(name='get-docker-logs', description="Retrieve task logs")
 def task_retrieve_task_docker_logs(log_prefix, container_name, tasks):
 
     logger = prefect.context.get("logger")
@@ -146,17 +134,12 @@ shell_kill_timedout = " ".join([
     "--reason \"Timed out\"",
     "--task {task}"
     ])
-task_format_kill_timedout = StringFormatter(
-    name="Prepare kill command",
-    template=shell_kill_timedout)
-task_kill_task_if_wait_fails = ShellTask(
-    name='Kill timed-out tasks',
-    return_all=True,
-    log_stderr=LOG_STDERR,
-    trigger=any_failed
-)
+@task(name="format-kill-cmd", description="Prepare kill command")
+def task_format_kill_timedout(**kwargs):
+    return shell_kill_timedout.format(**kwargs)
 
-@task(name="Check docker success")
+
+@task(name='chk-docker-status', description="Check docker success")
 def task_check_docker_success(tasks, cluster_name):
     ecs = boto3.client('ecs')
     response = ecs.describe_tasks(cluster=cluster_name, tasks=tasks)

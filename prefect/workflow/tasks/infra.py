@@ -1,17 +1,19 @@
 import time
 import json
 import multiprocessing, time, signal
+from contextlib import contextmanager
 
 import boto3
 import prefect
-from prefect.tasks.shell import ShellTask
-from prefect.tasks.aws.client_waiter import AWSClientWait 
 from prefect import task
-from prefect.triggers import all_finished
-from prefect.tasks.templates import StringFormatter
-from prefect.engine.signals import SKIP
-from prefect import resource_manager
-from prefect.agent.ecs.agent import ECSAgent
+#from prefect.tasks.shell import ShellTask
+#from prefect.tasks.aws.client_waiter import AWSClientWait 
+#from prefect import task
+#from prefect.triggers import all_finished
+#from prefect.tasks.templates import StringFormatter
+#from prefect.engine.signals import SKIP
+#from prefect import resource_manager
+#from prefect.agent.ecs.agent import ECSAgent
 
 import pw_client
 from conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME
@@ -178,7 +180,7 @@ def task_destroy_ec2_by_tag(run_tag):
             InstanceIds=instance_ids)
 
 
-@task(name="Add run tag attribute to ECS instance")
+@task(name='add-ecs-tag', description="Add run tag attribute to ECS instance")
 def task_add_ecs_attribute_for_ec2(ec2_instance_ids, cluster, run_tag):
 
     ecs_client = boto3.client('ecs')
@@ -212,37 +214,30 @@ def task_add_ecs_attribute_for_ec2(ec2_instance_ids, cluster, run_tag):
             ]
         )
 
-@resource_manager
-class ContainerInstance:
-    def __init__(self, run_tag, template_id):
-        self.tag = run_tag
-        self.template = template_id
 
-    def setup(self):
-        "Create container instances for the run specified by tag"
+@contextmanager
+def container_instance(run_tag, template_id):
+    ec2_client = boto3.client('ec2')
 
-        ec2_client = boto3.client('ec2')
+    ec2_instance_ids = task_create_ec2_w_tag.run(self.template, self.tag)
 
-        ec2_instance_ids = task_create_ec2_w_tag.run(self.template, self.tag)
+    waiter = ec2_client.get_waiter('instance_status_ok')
+    waiter.wait(InstanceIds=ec2_instance_ids)
 
-        waiter = ec2_client.get_waiter('instance_status_ok')
-        waiter.wait(InstanceIds=ec2_instance_ids)
+    response = ec2_client.describe_instances(InstanceIds=ec2_instance_ids)
+    instance_ips = [
+        instance['PublicIpAddress']
+        for rsv in response.get('Reservations', [])
+        for instance in rsv.get('Instances', [])
+        ]
 
-        response = ec2_client.describe_instances(InstanceIds=ec2_instance_ids)
-        instance_ips = [
-            instance['PublicIpAddress']
-            for rsv in response.get('Reservations', [])
-            for instance in rsv.get('Instances', [])
-            ]
+    logger = prefect.context.get("logger")
+    logger.info(f"EC2 public IPs: {','.join(instance_ips)}")
 
-        logger = prefect.context.get("logger")
-        logger.info(f"EC2 public IPs: {','.join(instance_ips)}")
+    try:
+        yield ec2_instance_ids
 
-        return ec2_instance_ids
-
-    def cleanup(self, ec2_instance_ids):
-        "Shutdown the container instance"
-
+    finally:
         # NOTE: We destroy by tag
         task_destroy_ec2_by_tag.run(self.tag)
 
