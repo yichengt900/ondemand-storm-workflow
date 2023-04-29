@@ -5,8 +5,7 @@ from functools import partial
 
 import boto3
 import prefect
-from prefect import task
-from prefect_aws import client_waiter
+from prefect import task, get_run_logger
 #from prefect.tasks.shell import ShellTask
 #from prefect.tasks.templates import StringFormatter
 #from prefect.tasks.aws.client_waiter import AWSClientWait 
@@ -37,9 +36,9 @@ def task_format_start_task(template, **kwargs):
     if len(env_list) > 0:
         aux['environment'] = env_list
 
-    run_tag = kwargs.pop("run_tag")
+    run_tag = str(kwargs.pop("run_tag"))
     if run_tag is None:
-        raise FAIL(message="Run tag is NOT provided for the task!")
+        raise ValueError("Run tag is NOT provided for the task!")
 
     overrides_storm = json.dumps({
       "containerOverrides": [
@@ -62,15 +61,15 @@ def task_format_start_task(template, **kwargs):
             ]
 
     if len(ec2_instance_ids) == 0:
-        raise FAIL(
-            message="Could NOT find any EC2 instances tagged for this run")
+        raise RuntimeError(
+            "Could NOT find any EC2 instances tagged for this run")
 
     ecs_client = boto3.client('ecs')
     response = ecs_client.list_container_instances(cluster=cluster)
     all_ecs_instance_arns = response['containerInstanceArns']
     if len(all_ecs_instance_arns) == 0:
-        raise FAIL(
-            message=f"Could NOT find any instances associated with cluster {cluster}")
+        raise RuntimeError(
+            f"Could NOT find any instances associated with cluster {cluster}")
 
     response = ecs_client.describe_container_instances(
                 cluster=cluster,
@@ -84,8 +83,8 @@ def task_format_start_task(template, **kwargs):
             break
 
     if len(ecs_instance_arns) == 0:
-        raise FAIL(
-            message="Could NOT find any container instances tagged for this run")
+        raise RuntimeError(
+            "Could NOT find any container instances tagged for this run")
 
     formatted_cmd = template.format(
             overrides=overrides_storm,
@@ -95,11 +94,22 @@ def task_format_start_task(template, **kwargs):
     return formatted_cmd
 
 
+# NOTE: We cannot use CLI aws ecs wait because it timesout after
+# 100 attempts made 6 secs apart.
+#@task(name='wait-ecs', description='Waiter for ECS task to stop')
+#def task_wait_ecs_tasks_stopped(cluster, tasks, delay, max_attempt):
+#    waiter = AwsCredentials().get_client('ecs').get_waiter('tasks_stopped')
+#    waiter.wait(
+#        cluster=cluster_name,
+#        tasks=tasks,
+#        WaiterConfig=dict(Delay=delay, MaxAttempts=max_attempt)
+#    )
+
 
 @task(name='get-docker-logs', description="Retrieve task logs")
 def task_retrieve_task_docker_logs(log_prefix, container_name, tasks):
 
-    logger = prefect.context.get("logger")
+    logger = get_run_logger()
     logs = boto3.client('logs')
     ecs = boto3.client('ecs')
 
@@ -143,7 +153,7 @@ def task_format_kill_timedout(**kwargs):
 def task_check_docker_success(tasks, cluster_name):
     ecs = boto3.client('ecs')
     response = ecs.describe_tasks(cluster=cluster_name, tasks=tasks)
-    logger = prefect.context.get("logger")
+    logger = get_run_logger()
     exit_codes = []
     try:
         for task in response['tasks']:
@@ -152,13 +162,13 @@ def task_check_docker_success(tasks, cluster_name):
                     exit_codes.append(container['exitCode'])
                 except KeyError:
                     logger.error(container['reason'])
-                    raise FAIL(message="A task description doesn't have exit code!")
+                    raise ValueError("A task description doesn't have exit code!")
     except KeyError:
         logger.error(response)
-        raise FAIL(message="ECS task decription cannot be parsed!")
+        raise ValueError("ECS task decription cannot be parsed!")
 
     if any(int(rv) != 0 for rv in exit_codes):
-        raise FAIL(message="Docker returned non-zero code!")
+        raise RuntimeError("Docker returned non-zero code!")
 
 
 # Using workflow-json on RDHPCS-C
@@ -206,17 +216,17 @@ def task_format_mesh_slurm(storm_name, storm_year, kwds):
     )
 
 
-task_submit_slurm = ShellTask(
-    name="Submit batch job on meshing cluster",
-    return_all=False, # Need single line reult for job ID extraction
-    log_stderr=LOG_STDERR,
-)
+#task_submit_slurm = ShellTask(
+#    name="Submit batch job on meshing cluster",
+#    return_all=False, # Need single line reult for job ID extraction
+#    log_stderr=LOG_STDERR,
+#)
 
 
 @task(name="Wait for slurm job")
 def task_wait_slurm_done(job_id):
 
-    logger = prefect.context.get("logger")
+    logger = get_run_logger()
     logger.info(f"Waiting for job with ID: {job_id}")
     while True:
         time.sleep(10)
@@ -249,11 +259,11 @@ def task_wait_slurm_done(job_id):
 
         raise RuntimeError(f"Slurm job failed with status {status}")
 
-task_format_schism_slurm = StringFormatter(
-    name="Prepare Slurm script to submit the batch job",
-    template=" ".join(
-        ["sbatch",
-         "--export=ALL,STORM_PATH=\"{run_path}\",SCHISM_EXEC=\"{schism_exec}\"",
-         "~/schism.sbatch"]
-    )
-)
+#task_format_schism_slurm = StringFormatter(
+#    name="Prepare Slurm script to submit the batch job",
+#    template=" ".join(
+#        ["sbatch",
+#         "--export=ALL,STORM_PATH=\"{run_path}\",SCHISM_EXEC=\"{schism_exec}\"",
+#         "~/schism.sbatch"]
+#    )
+#)

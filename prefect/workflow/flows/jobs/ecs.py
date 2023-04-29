@@ -1,8 +1,9 @@
 #from prefect import apply_map, unmapped, case, task
 from prefect import flow, allow_failure, unmapped
 from prefect_shell import shell_run_command
+from prefect_aws.client_waiter import client_waiter
 from prefect_aws import AwsCredentials
-from prefect_aws.client_wait import client_waiter
+
 #from prefect.utilities.edges import unmapped
 #from prefect.tasks.secrets import EnvVarSecret
 #from prefect.tasks.files.operations import Glob
@@ -22,8 +23,8 @@ from tasks.infra import (
 from tasks.jobs import (
     task_format_start_task,
     shell_run_task,
-    task_client_wait_for_ecs,
     task_retrieve_task_docker_logs,
+#    task_wait_ecs_tasks_stopped,
     task_format_kill_timedout,
     task_check_docker_success)
 from tasks.utils import (
@@ -279,14 +280,19 @@ def helper_call_prefect_task_for_ecs_job(
 
         result_tasks_list = task_pylist_from_jsonlist(result_ecs_task)
 
+#        result_wait_ecs = task_wait_ecs_tasks_stopped(
+#            cluster=cluster_name,
+#            tasks=result_tasks_list,
+#            delay=wait_delay,
+#            max_attempt=wait_attempt
         result_wait_ecs = client_waiter(
-            "ecs",
-            "tasks_stopped",
-            AwsCredentials(), # Get from local perms?!
+            'ecs',
+            'tasks_stopped',
+            AwsCredentials(),
             cluster=cluster_name,
             tasks=result_tasks_list,
             WaiterConfig=dict(Delay=wait_delay, MaxAttempts=wait_attempt)
-        ).submit()
+        )
 
         task_retrieve_task_docker_logs(
                 tasks=result_tasks_list,

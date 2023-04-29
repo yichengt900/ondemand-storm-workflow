@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 import boto3
 import prefect
-from prefect import task
+from prefect import task, get_run_logger
 #from prefect.tasks.shell import ShellTask
 #from prefect.tasks.aws.client_waiter import AWSClientWait 
 #from prefect import task
@@ -24,16 +24,16 @@ shell_list_cluster_instance_arns = " ".join([
     "--output json"
 ])
 
-task_format_list_cluster_instance_arns = StringFormatter(
-    name="Format list cluster instance ARNs",
-    template=shell_list_cluster_instance_arns
-)
-
-task_list_cluster_instance_arns = ShellTask(
-    name="List cluster instance arns",
-    return_all=True, # To get stdout as return value
-    log_stderr=LOG_STDERR,
-)
+#task_format_list_cluster_instance_arns = StringFormatter(
+#    name="Format list cluster instance ARNs",
+#    template=shell_list_cluster_instance_arns
+#)
+#
+#task_list_cluster_instance_arns = ShellTask(
+#    name="List cluster instance arns",
+#    return_all=True, # To get stdout as return value
+#    log_stderr=LOG_STDERR,
+#)
 
 
 # TODO: Check if instance is running (e.g. vs exist but STOPPED)
@@ -47,11 +47,11 @@ def task_check_if_ec2_needed(rv_shell):
 
     return is_needed
 
-task_client_wait_for_ec2 = AWSClientWait(
-    name='Wait for ECS task',
-    client='ec2',
-    waiter_name='instance_status_ok'
-)
+#task_client_wait_for_ec2 = AWSClientWait(
+#    name='Wait for ECS task',
+#    client='ec2',
+#    waiter_name='instance_status_ok'
+#)
 
 @task(name="Check for instance shutdown")
 def task_check_cluster_shutdown(rv_shell):
@@ -66,13 +66,13 @@ shell_term_instances = " ".join([
     "--instance-ids {instance_id_list}"
     ])
 
-task_format_term_ec2 = StringFormatter(
-    name="Format term ec2 command",
-    template=shell_term_instances)
-
-task_term_instances = ShellTask(
-    name="Stop cluster instances"
-)
+#task_format_term_ec2 = StringFormatter(
+#    name="Format term ec2 command",
+#    template=shell_term_instances)
+#
+#task_term_instances = ShellTask(
+#    name="Stop cluster instances"
+#)
 
 
 shell_spinup_cluster_ec2 = " ".join([
@@ -81,16 +81,16 @@ shell_spinup_cluster_ec2 = " ".join([
     "--query Instances[*].InstanceId",
     "--output json",
 ])
-task_format_spinup_cluster_ec2 = StringFormatter(
-    name="Format EC2 spinup command",
-    template=shell_spinup_cluster_ec2,
-    )
-
-task_spinup_cluster_ec2 = ShellTask(
-    name="EC2 for cluster",
-    return_all=True, # Multi line for list of tasks as json
-    log_stderr=LOG_STDERR,
-)
+#task_format_spinup_cluster_ec2 = StringFormatter(
+#    name="Format EC2 spinup command",
+#    template=shell_spinup_cluster_ec2,
+#    )
+#
+#task_spinup_cluster_ec2 = ShellTask(
+#    name="EC2 for cluster",
+#    return_all=True, # Multi line for list of tasks as json
+#    log_stderr=LOG_STDERR,
+#)
 
 shell_list_cluster_tasks = " ".join([
     "aws ecs list-tasks",
@@ -98,15 +98,15 @@ shell_list_cluster_tasks = " ".join([
     "--query taskArns",
     "--output json"
 ])
-task_format_list_cluster_tasks = StringFormatter(
-    name="Format list cluster tasks command",
-    template=shell_list_cluster_tasks)
-
-task_list_cluster_tasks = ShellTask(
-    name="List cluster tasks",
-    return_all=True, # To potentially multiline json string
-    log_stderr=LOG_STDERR,
-)
+#task_format_list_cluster_tasks = StringFormatter(
+#    name="Format list cluster tasks command",
+#    template=shell_list_cluster_tasks)
+#
+#task_list_cluster_tasks = ShellTask(
+#    name="List cluster tasks",
+#    return_all=True, # To potentially multiline json string
+#    log_stderr=LOG_STDERR,
+#)
 
 shell_list_cluster_instance_ids = " ".join([
     "aws ecs list-container-instances",
@@ -121,19 +121,19 @@ shell_list_cluster_instance_ids = " ".join([
     "--container-instances" # THIS MUST BE THE LAST ONE FOR XARGS
 ])
 
-task_format_list_cluster_instance_ids = StringFormatter(
-    name="Format list cluster instance ids command",
-    template=shell_list_cluster_instance_ids
-)
+#task_format_list_cluster_instance_ids = StringFormatter(
+#    name="Format list cluster instance ids command",
+#    template=shell_list_cluster_instance_ids
+#)
+#
+#task_list_cluster_instance_ids = ShellTask(
+#    name="List cluster instance IDs",
+#    return_all=False, # To get single line text output list
+#    log_stderr=LOG_STDERR,
+#)
 
-task_list_cluster_instance_ids = ShellTask(
-    name="List cluster instance IDs",
-    return_all=False, # To get single line text output list
-    log_stderr=LOG_STDERR,
-)
 
-
-@task(name="Create EC2 instance with unique tag")
+@task(name='new-ec2-w-tag', description="Create EC2 instance with unique tag")
 def task_create_ec2_w_tag(template_id, run_tag):
     ec2_resource = boto3.resource('ec2')
     ec2_client = boto3.client('ec2')
@@ -151,7 +151,7 @@ def task_create_ec2_w_tag(template_id, run_tag):
 
     ec2_resource.create_tags(
         Resources=instance_ids,
-        Tags=[{'Key': WORKFLOW_TAG_NAME, 'Value': run_tag}]
+        Tags=[{'Key': WORKFLOW_TAG_NAME, 'Value': str(run_tag)}]
     )
 
     return instance_ids
@@ -162,7 +162,7 @@ def task_destroy_ec2_by_tag(run_tag):
     ec2_client = boto3.client('ec2')
 
     filter_by_run_tag = [{
-        'Name': f'tag:{WORKFLOW_TAG_NAME}', 'Values': [run_tag]}]
+        'Name': f'tag:{WORKFLOW_TAG_NAME}', 'Values': [str(run_tag)]}]
     
     response = ec2_client.describe_instances(Filters=filter_by_run_tag)
     instance_ids = [
@@ -207,7 +207,7 @@ def task_add_ecs_attribute_for_ec2(ec2_instance_ids, cluster, run_tag):
             attributes=[
                 {
                     'name': 'run-tag',
-                    'value': run_tag,
+                    'value': str(run_tag),
                     'targetType': 'container-instance',
                     'targetId': inst_arn
                 },
@@ -217,9 +217,11 @@ def task_add_ecs_attribute_for_ec2(ec2_instance_ids, cluster, run_tag):
 
 @contextmanager
 def container_instance(run_tag, template_id):
+    # TODO: Make all the segments separate tasks so that wait is a
+    # part of create, etc.
     ec2_client = boto3.client('ec2')
 
-    ec2_instance_ids = task_create_ec2_w_tag.run(self.template, self.tag)
+    ec2_instance_ids = task_create_ec2_w_tag(template_id, run_tag)
 
     waiter = ec2_client.get_waiter('instance_status_ok')
     waiter.wait(InstanceIds=ec2_instance_ids)
@@ -231,7 +233,7 @@ def container_instance(run_tag, template_id):
         for instance in rsv.get('Instances', [])
         ]
 
-    logger = prefect.context.get("logger")
+    logger = get_run_logger()
     logger.info(f"EC2 public IPs: {','.join(instance_ips)}")
 
     try:
@@ -239,7 +241,7 @@ def container_instance(run_tag, template_id):
 
     finally:
         # NOTE: We destroy by tag
-        task_destroy_ec2_by_tag.run(self.tag)
+        task_destroy_ec2_by_tag(run_tag)
 
 
 @task(name="Start RDHPCS cluster")
@@ -283,22 +285,22 @@ def task_start_rdhpcs_cluster(api_key, cluster_name):
             return ip
 
 
-@task(name="Stop RDHPCS cluster", trigger=all_finished)
-def task_stop_rdhpcs_cluster(api_key, cluster_name):
-
-    c = pw_client.Client(PW_URL, api_key)
-
-    # check if resource exists and is on
-    cluster = c.get_resource(cluster_name)
-    if cluster:
-        if cluster['status'] == "off":
-            return
-
-        # TODO: Check if another job is running on the cluster
-
-        # if resource not on, start it
-        time.sleep(0.2)
-        c.stop_resource(cluster_name)
-
-    else:
-        raise ValueError("Cluster name could not be found!")
+#@task(name="Stop RDHPCS cluster", trigger=all_finished)
+#def task_stop_rdhpcs_cluster(api_key, cluster_name):
+#
+#    c = pw_client.Client(PW_URL, api_key)
+#
+#    # check if resource exists and is on
+#    cluster = c.get_resource(cluster_name)
+#    if cluster:
+#        if cluster['status'] == "off":
+#            return
+#
+#        # TODO: Check if another job is running on the cluster
+#
+#        # if resource not on, start it
+#        time.sleep(0.2)
+#        c.stop_resource(cluster_name)
+#
+#    else:
+#        raise ValueError("Cluster name could not be found!")
