@@ -5,7 +5,6 @@ from prefect_aws.client_waiter import client_waiter
 from prefect_aws import AwsCredentials
 
 #from prefect.utilities.edges import unmapped
-#from prefect.tasks.secrets import EnvVarSecret
 #from prefect.tasks.files.operations import Glob
 
 from conf import (
@@ -33,172 +32,9 @@ from tasks.utils import (
     task_get_flow_run_id,
 #    task_convert_str_to_path,
 )
-#from flows.utils import LocalAWSFlow, flow_dependency, task_create_ecsrun_config
 
 
-
-#def _use_if(param, is_true, value):
-#    if is_true:
-#        task = task_return_value_if_param_true
-#    else:
-#        task = task_return_value_if_param_false
-#
-#    return lambda: task(param=param, value=value)
-#
-#
-#def _tag(template):
-#    return task_replace_tag_in_template(
-#            storm_name=param_storm_name,
-#            storm_year=param_storm_year,
-#            run_id=param_run_id,
-#            template_str=str(template))
-#
-#
-#def _tag_n_use_if(param, is_true, template):
-#    if is_true:
-#        task = task_return_value_if_param_true
-#    else:
-#        task = task_return_value_if_param_false
-#
-#    return lambda: task(
-#                param=param,
-#                value=task_replace_tag_in_template(
-#                    storm_name=param_storm_name,
-#                    storm_year=param_storm_year,
-#                    run_id=param_run_id,
-#                    template_str=str(template)
-#                )
-#            )
-#
-#
-#def _use_if_and(*and_conds, value=None):
-#    assert value is not None
-#    assert len(and_conds) % 2 == 0
-#    tasks_args = []
-#    conds_iter = iter(and_conds)
-#    for par, is_true in zip(conds_iter, conds_iter):
-#        if is_true:
-#            tasks_args.append((task_return_value_if_param_true, par))
-#        else:
-#            tasks_args.append((task_return_value_if_param_false, par))
-#
-#    def _call_task(remains):
-#        assert len(remains) > 0
-#        task_arg = remains[0]
-#        if len(remains) == 1:
-#            return task_arg[0](param=task_arg[1], value=value)
-#        return task_arg[0](param=task_arg[1], value=_call_task(remains[1:]))
-#
-#    def _task_recurse():
-#        return _call_task(tasks_args)
-#
-#    return _task_recurse
-#
-#
-#def _tag_n_use_if_and(*and_conds, template=None):
-#    assert template is not None
-#    assert len(and_conds) % 2 == 0
-#    tasks_args = []
-#    conds_iter = iter(and_conds)
-#    for par, is_true in zip(conds_iter, conds_iter):
-#        if is_true:
-#            tasks_args.append((task_return_value_if_param_true, par))
-#        else:
-#            tasks_args.append((task_return_value_if_param_false, par))
-#
-#    def _call_task(remains):
-#        assert len(remains) > 0
-#        task_arg = remains[0]
-#        if len(remains) == 1:
-#            return task_arg[0](
-#                    param=task_arg[1],
-#                    value=task_replace_tag_in_template(
-#                        storm_name=param_storm_name,
-#                        storm_year=param_storm_year,
-#                        run_id=param_run_id,
-#                        template_str=str(template)
-#                    )
-#                )
-#        return task_arg[0](param=task_arg[1], value=_call_task(remains[1:]))
-#
-#    def _task_recurse():
-#        return _call_task(tasks_args)
-#
-#    return _task_recurse
-#
-#
 #info_flow_ecs_task_details = {
-#    "sim-prep-setup-aws": ECSTaskDetail(
-#        OCSMESH_CLUSTER, OCSMESH_TEMPLATE_2_ID, "odssm-prep", "prep", [
-#            # Command and arguments for deterministic run
-#            _use_if(param_ensemble, False, "setup_model"),
-#            _use_if_and(
-#                param_use_parametric_wind, True, param_ensemble, False,
-#                value="--parametric-wind"
-#            ),
-#            _use_if(param_ensemble, False, "--mesh-file"),
-#            _tag_n_use_if(
-#                param_ensemble, False, 'hurricanes/{tag}/mesh/mesh_w_bdry.grd'
-#            ),
-#            _use_if(param_ensemble, False, "--domain-bbox-file"),
-#            _tag_n_use_if(
-#                param_ensemble, False, 'hurricanes/{tag}/mesh/domain_box/'
-#            ),
-#            _use_if(param_ensemble, False, "--station-location-file"),
-#            _tag_n_use_if(
-#                param_ensemble, False, 'hurricanes/{tag}/setup/stations.csv'
-#            ),
-#            _use_if(param_ensemble, False, "--out"),
-#            _tag_n_use_if(
-#                param_ensemble, False, 'hurricanes/{tag}/setup/schism.dir/'
-#            ),
-#            _use_if_and(
-#                param_use_parametric_wind, True, param_ensemble, False,
-#                value="--track-file"
-#            ),
-#            _tag_n_use_if_and(
-#                param_use_parametric_wind, True, param_ensemble, False,
-#                template='hurricanes/{tag}/nhc_track/hurricane-track.dat',
-#            ),
-#            _use_if(param_ensemble, False, "--cache-dir"),
-#            _use_if(param_ensemble, False, 'cache'),
-#            _use_if(param_ensemble, False, "--nwm-dir"),
-#            _use_if(param_ensemble, False, 'nwm'),
-#            # Command and arguments for ensemble run
-#            _use_if(param_ensemble, True, "setup_ensemble"),
-#            _use_if(param_ensemble, True, "--track-file"),
-#            _tag_n_use_if(
-#                param_ensemble, True, 'hurricanes/{tag}/nhc_track/hurricane-track.dat',
-#            ),
-#            _use_if(param_ensemble, True, "--output-directory"),
-#            _tag_n_use_if(
-#                param_ensemble, True, 'hurricanes/{tag}/setup/ensemble.dir/'
-#            ),
-#            _use_if(param_ensemble, True, "--num-perturbations"),
-#            _use_if(param_ensemble, True, param_ensemble_n_perturb),
-#            _use_if(param_ensemble, True, '--mesh-directory'),
-#            _tag_n_use_if(
-#                param_ensemble, True, 'hurricanes/{tag}/mesh/'
-#            ),
-#            _use_if(param_ensemble, True, "--sample-from-distribution"),
-##           _use_if(param_ensemble, True, "--quadrature"),
-#            _use_if(param_ensemble, True, "--sample-rule"),
-#            _use_if(param_ensemble, True, param_ensemble_sample_rule),
-#            _use_if(param_ensemble, True, "--hours-before-landfall"),
-#            _use_if(param_ensemble, True, param_hr_prelandfall),
-#            _use_if(param_ensemble, True, "--nwm-file"),
-#            _use_if(param_ensemble, 
-#                True,
-#                "nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb"
-#            ),
-#            # Common arguments
-#            "--date-range-file",
-#            _tag('hurricanes/{tag}/setup/dates.csv'),
-#            "--tpxo-dir", 'tpxo',
-#            _use_if(param_wind_coupling, True, "--use-wwm"),
-#            param_storm_name, param_storm_year],
-#        "setup",
-#        60, 180, ["CDSAPI_URL", "CDSAPI_KEY"]),
 #    "schism-run-aws-single": ECSTaskDetail(
 #        SCHISM_CLUSTER, SCHISM_TEMPLATE_ID, "odssm-solve", "solve", [
 #            param_schism_dir,
@@ -251,14 +87,14 @@ def helper_call_prefect_task_for_ecs_job(
 
     # See https://discourse.prefect.io/t/use-local-secrets-in-prefect-2/2167/3
     # and https://docs.prefect.io/latest/concepts/blocks/#secret-fields
-#    additional_kwds = {}
-#    if environment is not None:
-#        env = additional_kwds.setdefault('env', [])
-#        for item in environment:
-#            env.append({
-#                "name": item,
-#                "value": EnvVarSecret(item, raise_if_missing=True)}
-#            )
+    additional_kwds = {}
+    if environment is not None:
+        env = additional_kwds.setdefault('env', [])
+        for item in environment:
+            env.append({
+                "name": item,
+                "value": EnvVarSecret(item, raise_if_missing=True)}
+            )
 
 
     # Using container instance per ecs flow, NOT main flow
@@ -273,7 +109,7 @@ def helper_call_prefect_task_for_ecs_job(
                 name_ecs_task=name_ecs_task,
                 name_docker=name_docker,
                 run_tag=thisflow_run_id,
-#                **additional_kwds)
+                **additional_kwds
             ),
             return_all=True
         )
@@ -369,65 +205,158 @@ def flow_sim_prep_info_aws(
 
     return ref_state
 
-#@flow
-#def flow_sim_prep_mesh_aws():
-#
-#    kwargs = dict(
-#        cluster_name=OCSMESH_CLUSTER,
-#        ec2_template=OCSMESH_TEMPLATE_1_ID,
-#        description="Generate mesh",
-#        name_ecs_task="odssm-mesh",
-#        name_docker="mesh",
-#        wait_delay=60,
-#        wait_attempt=180,
-#        environment=[]
-#        command=[
-#            param_storm_name, param_storm_year,
-#            "--rasters-dir", 'dem',
-#            # If subsetting flag is False
-#            _use_if(param_subset_mesh, False, "hurricane_mesh"),
-#            _use_if(param_subset_mesh, False, "--hmax"),
-#            _use_if(param_subset_mesh, False, param_mesh_hmax),
-#            _use_if(param_subset_mesh, False, "--hmin-low"),
-#            _use_if(param_subset_mesh, False, param_mesh_hmin_low),
-#            _use_if(param_subset_mesh, False, "--rate-low"),
-#            _use_if(param_subset_mesh, False, param_mesh_rate_low),
-#            _use_if(param_subset_mesh, False, "--transition-elev"),
-#            _use_if(param_subset_mesh, False, param_mesh_trans_elev),
-#            _use_if(param_subset_mesh, False, "--hmin-high"),
-#            _use_if(param_subset_mesh, False, param_mesh_hmin_high),
-#            _use_if(param_subset_mesh, False, "--rate-high"),
-#            _use_if(param_subset_mesh, False, param_mesh_rate_high),
-#            _use_if(param_subset_mesh, False, "--shapes-dir"),
-#            _use_if(param_subset_mesh, False, 'shape'),
-#            _use_if(param_subset_mesh, False, "--windswath"),
-#            _tag_n_use_if(
-#                param_subset_mesh, False, 'hurricanes/{tag}/windswath'
-#            ),
-#            # If subsetting flag is True
-#            _use_if(param_subset_mesh, True, "subset_n_combine"),
-#            _use_if(param_subset_mesh, True, 'grid/HSOFS_250m_v1.0_fixed.14'),
-#            _use_if(param_subset_mesh, True, 'grid/WNAT_1km.14'),
-#            _tag_n_use_if(
-#                param_subset_mesh, True, 'hurricanes/{tag}/windswath'
-#            ),
-#            # Other shared options
-#            "--out", _tag('hurricanes/{tag}/mesh'),
-#        ]
-#    )
-#
-#    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
-#
-#    return ref_state
+@flow
+def flow_sim_prep_mesh_aws(
+    name: str,
+    year: int,
+    subset_mesh: bool,
+    mesh_hmax: float,
+    mesh_hmin_low: float,
+    mesh_rate_low: float,
+    mesh_cutoff: float,
+    mesh_hmin_high: float,
+    mesh_rate_high: float,
+    tag: str,
+):
 
-#@flow
-#def flow_sim_prep_setup_aws():
-#    ref_state = helper_call_prefect_task_for_ecs_job(
-#        info_flow_ecs_task_details["sim-prep-setup-aws"]
-#    )
-#
-#    return ref_state
-#
+        
+    cmd_list = []
+    cmd_list.append(name)
+    cmd_list.append(year)
+    cmd_list.append("--rasters-dir")
+    cmd_list.append('dem')
+    if not subset_mesh:
+        cmd_list.append("hurricane_mesh")
+        cmd_list.append("--hmax")
+        cmd_list.append(mesh_hmax)
+        cmd_list.append("--hmin-low")
+        cmd_list.append(mesh_hmin_low)
+        cmd_list.append("--rate-low")
+        cmd_list.append(mesh_rate_low)
+        cmd_list.append("--transition-elev")
+        cmd_list.append(mesh_cutoff)
+        cmd_list.append("--hmin-high")
+        cmd_list.append(mesh_hmin_high)
+        cmd_list.append("--rate-high")
+        cmd_list.append(mesh_rate_high)
+        cmd_list.append("--shapes-dir")
+        cmd_list.append('shape')
+        cmd_list.append("--windswath")
+        cmd_list.append(f'hurricanes/{tag}/windswath')
+    else:
+        cmd_list.append("subset_n_combine")
+        cmd_list.append('grid/HSOFS_250m_v1.0_fixed.14')
+        cmd_list.append('grid/WNAT_1km.14')
+        cmd_list.append(f'hurricanes/{tag}/windswath')
+
+    cmd_list.append("--out")
+    cmd_list.append(f'hurricanes/{tag}/mesh')
+
+
+    kwargs = dict(
+        cluster_name=OCSMESH_CLUSTER,
+        ec2_template=OCSMESH_TEMPLATE_1_ID,
+        description="Generate mesh",
+        name_ecs_task="odssm-mesh",
+        name_docker="mesh",
+        wait_delay=60,
+        wait_attempt=180,
+        environment=[],
+        command=cmd_list
+    )
+
+    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
+
+    return ref_state
+
+@flow
+def flow_sim_prep_setup_aws(
+    name: str,
+    year: int,
+    parametric_wind: bool,
+    past_forecast: bool,
+    hr_before_landfall: int,
+    couple_wind: bool,
+    ensemble: bool,
+    ensemble_num_perturbations: int,
+    ensemble_sample_rule: str,
+    tag: str,
+):
+
+
+    cmd_list = []
+
+    if not ensemble:
+
+        cmd_list.append("setup_model")
+        if parametric_wind:
+            cmd_list.append("--parametric-wind")
+
+        cmd_list.append("--mesh-file")
+        cmd_list.append(f'hurricanes/{tag}/mesh/mesh_w_bdry.grd')
+        cmd_list.append("--domain-bbox-file")
+        cmd_list.append(f'hurricanes/{tag}/mesh/domain_box/')
+        cmd_list.append("--station-location-file")
+        cmd_list.append(f'hurricanes/{tag}/setup/stations.csv')
+        cmd_list.append("--out")
+        cmd_list.append(f'hurricanes/{tag}/setup/schism.dir/')
+        if parametric_wind:
+            cmd_list.append("--track-file")
+            cmd_list.append(f'hurricanes/{tag}/nhc_track/hurricane-track.dat')
+        cmd_list.append("--cache-dir")
+        cmd_list.append('cache')
+        cmd_list.append("--nwm-dir")
+        cmd_list.append('nwm')
+
+    else:
+
+        cmd_list.append("setup_ensemble")
+        cmd_list.append("--track-file")
+        cmd_list.appnd(f'hurricanes/{tag}/nhc_track/hurricane-track.dat')
+        cmd_list.append("--output-directory")
+        cmd_list.append(f'hurricanes/{tag}/setup/ensemble.dir/')
+        cmd_list.append("--num-perturbations")
+        cmd_list.append(ensemble_num_perturbations)
+        cmd_list.append('--mesh-directory')
+        cmd_list.append(f'hurricanes/{tag}/mesh/')
+        cmd_list.append("--sample-from-distribution")
+#        _use_if(param_ensemble, True, "--quadrature")
+        cmd_list.append("--sample-rule")
+        cmd_list.append(ensemble_sample_rule)
+        cmd_list.append("--hours-before-landfall")
+        cmd_list.append(hr_before_landfall)
+        cmd_list.append("--nwm-file")
+        cmd_list.append(
+            "nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb"
+        )
+
+    cmd_list.append("--date-range-file")
+    cmd_list.append(f'hurricanes/{tag}/setup/dates.csv')
+    cmd_list.append("--tpxo-dir")
+    cmd_list.append('tpxo')
+    if couple_wind:
+        cmd_list.append("--use-wwm")
+
+    cmd_list.append(name)
+    cmd_list.append(year)
+
+
+    kwargs = dict(
+        cluster_name=OCSMESH_CLUSTER,
+        ec2_template=OCSMESH_TEMPLATE_2_ID,
+        description="Generate model inputs",
+        name_ecs_task="odssm-prep",
+        name_docker="prep",
+        wait_delay=60,
+        wait_attempt=180,
+        environment=["CDSAPI_URL", "CDSAPI_KEY"],
+        command=cmd_list
+    )
+
+    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
+
+    return ref_state
+
 #@flow
 #def flow_schism_single_run_aws():
 #    ref_state = helper_call_prefect_task_for_ecs_job(

@@ -35,7 +35,8 @@ from tasks.utils import (
 )
 from flows.jobs.ecs import (
         flow_sim_prep_info_aws,
-#        make_flow_generic_ecs_task,
+        flow_sim_prep_mesh_aws,
+        flow_sim_prep_setup_aws,
 #        make_flow_solve_ecs_task
 )
 #from flows.jobs.pw import(
@@ -124,7 +125,6 @@ def end_to_end_flow(
     flow_run_id = task_get_flow_run_id()
     run_tag = task_get_run_tag(name, year, flow_run_id)
 
-    # TODO: This is not as strong in cleanup as old resource_manager
     with flock(INIT_FINI_LOCK):
         # This is a shell operation
         result_copy_task = task_copy_s3_data()
@@ -137,9 +137,37 @@ def end_to_end_flow(
         past_forecast=past_forecast,
         hr_before_landfall=hr_before_landfall,
         tag=run_tag,
+        wait_for=[result_init_run]
     )
 
-    pprint(locals())
+    result_gen_mesh = flow_sim_prep_mesh_aws(
+        name=name,
+        year=year,
+        subset_mesh=subset_mesh,
+        mesh_hmax=mesh_hmax,
+        mesh_hmin_low=mesh_hmin_low,
+        mesh_rate_low=mesh_rate_low,
+        mesh_cutoff=mesh_cutoff,
+        mesh_hmin_high=mesh_hmin_high,
+        mesh_rate_high=mesh_rate_high,
+        tag=run_tag,
+        wait_for=[result_get_info]
+    )
+
+    result_setup_model = flow_sim_prep_setup_aws(
+        name=name,
+        year=year,
+        parametric_wind=parametric_wind,
+        past_forecast=past_forecast,
+        hr_before_landfall=hr_before_landfall,
+        couple_wind=couple_wind,
+        ensemble=ensemble,
+        ensemble_num_perturbations=ensemble_num_perturbations,
+        ensemble_sample_rule=ensemble_sample_rule,
+        tag=run_tag,
+        wait_for=[result_gen_mesh]
+    )
+
 
 
 
