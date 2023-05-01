@@ -68,8 +68,14 @@ with open(TERRAFORM_CONFIG_FILE, 'r') as f:
 # TODO: Get from var file in conf
 log_group_name='odssm_ecs_task_docker_logs'
 
-wf_storage = S3(
-    bucket_path=S3_BUCKET,
+aws_storage = S3(
+    bucket_path=S3_BUCKET, # Read from terraform vars file
     # Set creds in your local env
 )
-wf_storage.save("prefect-s3-block", overwrite=True)
+pw_storage = S3(
+    bucket_path=PW_S3,
+    **pw_s3_cred
+)
+
+aws_storage.save("aws-s3-block", overwrite=True)
+pw_storage.save("pw-s3-block", overwrite=True)

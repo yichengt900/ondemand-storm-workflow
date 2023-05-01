@@ -4,9 +4,16 @@ channels:
   - defaults
 dependencies:
   - python=3.10
-  - prefect=1.4, <2
+  - prefect>=2
+  - pip
   - cloudpickle
+  - ansible-core
+  - terraform
   - requests
   - dnspython
   - boto3
   - dunamai
+  - s3fs
+  - pip:
+    - prefect-aws
+    - prefect-shell

@@ -5,8 +5,7 @@ channels:
 dependencies:
   - python=3.10
   - prefect>=2
-  - prefect-aws
-  - prefect-shell
+  - pip
   - cloudpickle
   - ansible-core
   - terraform
@@ -15,3 +14,6 @@ dependencies:
   - boto3
   - dunamai
   - s3fs
+  - pip:
+    - prefect-aws
+    - prefect-shell

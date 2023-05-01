@@ -55,12 +55,12 @@
 
   # TODO: Use --key instead of --token for Prefect
   vars:
-    key: "{{ lookup('env', 'PREFECT_AGENT_TOKEN') }}"
+    key: "{{ lookup('env', 'PREFECT2_API_KEY') }}"
     rdhpcs_s3_access_key_id: "{{ lookup('env', 'RDHPCS_S3_ACCESS_KEY_ID') }}"
     rdhpcs_s3_secret_access_key: "{{ lookup('env', 'RDHPCS_S3_SECRET_ACCESS_KEY') }}"
     pw_api_key: "{{ lookup('env', 'PW_API_KEY') }}"
     efs_mount_dir: /efs
-    docker_image: "{{ prefect_image }}:v0.4"
+    docker_image: "{{ prefect_image }}:v0.5"
     cdsapi_url: "{{ lookup('env', 'CDSAPI_URL') }}"
     cdsapi_key: "{{ lookup('env', 'CDSAPI_KEY') }}"
 
@@ -150,11 +150,10 @@
 
     - name: Register Prefect Local agent
       docker_container:
-        name: "prefect-agent-local"
+        name: "prefect-aws"
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
-          PREFECT_AGENT_TOKEN: "{{ key }} "
           AWS_DEFAULT_REGION: "{{ aws_default_region }}"
           # fixes aws-cli command output issue
           AWS_PAGER: ""
@@ -163,21 +162,15 @@
 
         volumes:
           - /efs:/efs
-        command: >
-          prefect agent local start
-          --key "{{ key }}"
-          --label tacc-odssm-local
-          --name tacc-odssm-agent-local
-          --log-level INFO
+        command: sh -c "prefect cloud login --key "{{ key }}" --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-ec2"
         state: started
 
     - name: Register Prefect Local agent 2
       docker_container:
-        name: "prefect-agent-local-for-rdhpcs"
+        name: "prefect-pw-local"
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
-          PREFECT_AGENT_TOKEN: "{{ key }} " # TODO: Remove?
           AWS_ACCESS_KEY_ID: "{{ rdhpcs_s3_access_key_id }}"
           AWS_SECRET_ACCESS_KEY: "{{ rdhpcs_s3_secret_access_key }}"
           PW_API_KEY: "{{ pw_api_key }}"
@@ -187,34 +180,7 @@
           CDSAPI_KEY: "{{ cdsapi_key }}"
         volumes:
           - /efs:/efs
-        command: >
-          prefect agent local start
-          --key "{{ key }}"
-          --label tacc-odssm-local-for-rdhpcs
-          --name tacc-odssm-agent-local-for-rdhpcs
-          --log-level INFO
-        state: started
-    - name: Register Prefect ECS agents
-      docker_container:
-        name: "prefect-agent-ecs"
-        image: "{{ docker_image }}"
-        container_default_behavior: "compatibility"
-        env:
-          PREFECT_AGENT_TOKEN: "{{ key }} "
-          AWS_DEFAULT_REGION: "{{ aws_default_region }}"
-          # fixes aws-cli command output issue
-          AWS_PAGER: ""
-        volumes:
-          - /efs:/efs
-        command: >
-          prefect agent ecs start
-          --launch-type EC2
-          --env AWS_DEFAULT_REGION="{{ aws_default_region }}"
-          --key "{{ key }}"
-          --label tacc-odssm-ecs
-          --name tacc-odssm-agent-ecs
-          --log-level INFO
-          --cluster workflow
+        command: sh -c "prefect cloud login --key "{{ key }}" --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-pw-local"
         state: started
 
 

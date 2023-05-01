@@ -108,7 +108,7 @@ resource "local_file" "odssm-prefect-vars" {
         aws_security_group.odssm-sg-ecsout.id,
         aws_security_group.odssm-sg-ssh.id,
     ]
-      WF_IMG = "${aws_ecr_repository.odssm-repo["odssm-workflow"].repository_url}:v0.4"
+      WF_IMG = "${aws_ecr_repository.odssm-repo["odssm-workflow"].repository_url}:v0.5"
       WF_ECS_TASK_ARN = aws_ecs_task_definition.odssm-flowrun-task.arn
     })
     filename = local.prefect_var_path
@@ -731,7 +731,7 @@ resource "aws_ecs_task_definition" "odssm-flowrun-task" {
     container_definitions = jsonencode([
       {
         name = "flow"
-        image = "${aws_ecr_repository.odssm-repo["odssm-workflow"].repository_url}:v0.4"
+        image = "${aws_ecr_repository.odssm-repo["odssm-workflow"].repository_url}:v0.5"
 
         essential = true
 
