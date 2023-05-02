@@ -1,10 +1,11 @@
-#from prefect import apply_map, unmapped, case, task
+import os
+from pathlib import Path
+
 from prefect import flow, allow_failure, unmapped
 from prefect_shell import shell_run_command
 from prefect_aws.client_waiter import client_waiter
 from prefect_aws import AwsCredentials
 
-#from prefect.utilities.edges import unmapped
 #from prefect.tasks.files.operations import Glob
 
 from conf import (
@@ -35,40 +36,6 @@ from tasks.utils import (
 
 
 #info_flow_ecs_task_details = {
-#    "schism-run-aws-single": ECSTaskDetail(
-#        SCHISM_CLUSTER, SCHISM_TEMPLATE_ID, "odssm-solve", "solve", [
-#            param_schism_dir,
-#            param_schism_exec
-#            ],
-#        "SCHISM",
-#        60, 240, []),
-#    "viz-sta-html-aws": ECSTaskDetail(
-#        VIZ_CLUSTER, VIZ_TEMPLATE_ID, "odssm-post", "post", [
-#            param_storm_name, param_storm_year,
-#            _tag('hurricanes/{tag}/setup/schism.dir/'),
-#            ],
-#        "visualization",
-#        20, 45, []),
-#    "viz-cmb-ensemble-aws": ECSTaskDetail(
-#        SCHISM_CLUSTER, SCHISM_TEMPLATE_ID, "odssm-prep", "prep", [
-#            'combine_ensemble',
-#            '--ensemble-dir', 
-#            _tag('hurricanes/{tag}/setup/ensemble.dir/'),
-#            '--tracks-dir', 
-#            _tag('hurricanes/{tag}/setup/ensemble.dir/track_files'),
-#            ],
-#        "Combine ensemble output files",
-#        60, 90, []),
-#    "viz-ana-ensemble-aws": ECSTaskDetail(
-#        SCHISM_CLUSTER, SCHISM_TEMPLATE_ID, "odssm-prep", "prep", [
-#            'analyze_ensemble',
-#            '--ensemble-dir', 
-#            _tag('hurricanes/{tag}/setup/ensemble.dir/'),
-#            '--tracks-dir', 
-#            _tag('hurricanes/{tag}/setup/ensemble.dir/track_files'),
-#            ],
-#        "Analyze combined ensemble output",
-#        60, 90, []),
 #}
 
 def helper_call_prefect_task_for_ecs_job(
@@ -85,15 +52,13 @@ def helper_call_prefect_task_for_ecs_job(
 
 
 
-    # See https://discourse.prefect.io/t/use-local-secrets-in-prefect-2/2167/3
-    # and https://docs.prefect.io/latest/concepts/blocks/#secret-fields
     additional_kwds = {}
     if environment is not None:
         env = additional_kwds.setdefault('env', [])
         for item in environment:
             env.append({
                 "name": item,
-                "value": EnvVarSecret(item, raise_if_missing=True)}
+                "value": os.environ[item]}
             )
 
 
@@ -309,7 +274,6 @@ def flow_sim_prep_setup_aws(
         cmd_list.append('nwm')
 
     else:
-
         cmd_list.append("setup_ensemble")
         cmd_list.append("--track-file")
         cmd_list.appnd(f'hurricanes/{tag}/nhc_track/hurricane-track.dat')
@@ -320,7 +284,7 @@ def flow_sim_prep_setup_aws(
         cmd_list.append('--mesh-directory')
         cmd_list.append(f'hurricanes/{tag}/mesh/')
         cmd_list.append("--sample-from-distribution")
-#        _use_if(param_ensemble, True, "--quadrature")
+#        cmd_list.append("--quadrature")
         cmd_list.append("--sample-rule")
         cmd_list.append(ensemble_sample_rule)
         cmd_list.append("--hours-before-landfall")
@@ -357,135 +321,190 @@ def flow_sim_prep_setup_aws(
 
     return ref_state
 
-#@flow
-#def flow_schism_single_run_aws():
-#    ref_state = helper_call_prefect_task_for_ecs_job(
-#        info_flow_ecs_task_details["schism-run-aws-single"]
-#    )
-#
-#    return ref_state
-#
-#@flow
-#def flow_sta_html_aws():
-#    ref_state = helper_call_prefect_task_for_ecs_job(
-#        info_flow_ecs_task_details["viz-sta-html-aws"]
-#    )
-#
-#    return ref_state
-#
-#@flow
-#def flow_cmb_ensemble_aws():
-#    ref_state = helper_call_prefect_task_for_ecs_job(
-#        info_flow_ecs_task_details["viz-cmb-ensemble-aws"]
-#    )
-#
-#    return ref_state
-#
-#@flow
-#def flow_ana_ensemble_aws():
-#    ref_state = helper_call_prefect_task_for_ecs_job(
-#        info_flow_ecs_task_details["viz-ana-ensemble-aws"]
-#    )
-#
-#    return ref_state
+
+@flow
+def flow_schism_single_run_aws(
+    schism_dir: Path,
+    schism_exec: Path
+):
+
+    cmd_list = []
+    cmd_list.append(schism_dir)
+    cmd_list.append(schism_exec)
+
+    kwargs = dict(
+        cluster_name=OCSMESH_CLUSTER,
+        ec2_template=OCSMESH_TEMPLATE_2_ID,
+        description="Run SCHISM",
+        name_ecs_task="odssm-solve",
+        name_docker="solve",
+        wait_delay=60,
+        wait_attempt=240,
+        environment=[],
+        command=cmd_list
+    )
+
+    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
+
+    return ref_state
 
 
-#def make_flow_solve_ecs_task(child_flow):
-#
-#
-#    ref_tasks = []
-#    with LocalAWSFlow("schism-run-aws-ensemble") as flow:
-#
-#        result_is_ensemble_on = task_check_param_true(param_ensemble)
-#        with case(result_is_ensemble_on, False):
-#            rundir = task_replace_tag_in_template(
-#                storm_name=param_storm_name,
-#                storm_year=param_storm_year,
-#                run_id=param_run_id,
-#                template_str='hurricanes/{tag}/setup/schism.dir/'
-#            )
-#
-#            ref_tasks.append(
-#                flow_dependency(
-#                    flow_name=child_flow.name,
-#                    upstream_tasks=None,
-#                    parameters=task_bundle_params(
-#                        name=param_storm_name,
-#                        year=param_storm_year,
-#                        run_id=param_run_id,
-#                        schism_dir=rundir,
-#                        schism_exec=task_return_this_if_param_true_else_that(
-#                            param_wind_coupling,
-#                            'pschism_WWM_PAHM_TVD-VL',
-#                            'pschism_PAHM_TVD-VL',
-#                        )
-#                    )
-#                )
-#            )
-#
-#        with case(result_is_ensemble_on, True):
-#            result_ensemble_dir = task_replace_tag_in_template(
-#                storm_name=param_storm_name,
-#                storm_year=param_storm_year,
-#                run_id=param_run_id,
-#                template_str='hurricanes/{tag}/setup/ensemble.dir/'
-#            )
-#
-#            run_tag = task_get_run_tag(
-#                    storm_name=param_storm_name,
-#                    storm_year=param_storm_year,
-#                    run_id=param_run_id)
-#
-#            # Start an EC2 to manage ensemble flow runs
-#            with ContainerInstance(run_tag, WF_TEMPLATE_ID) as ec2_ids:
-#
-#                task_add_ecs_attribute_for_ec2(ec2_ids, WF_CLUSTER, run_tag)
-#                ecs_config = task_create_ecsrun_config(run_tag)
-#                coldstart_task = flow_dependency(
-#                    flow_name=child_flow.name,
-#                    upstream_tasks=None,
-#                    parameters=task_bundle_params(
-#                        name=param_storm_name,
-#                        year=param_storm_year,
-#                        run_id=param_run_id,
-#                        schism_dir=result_ensemble_dir + '/spinup',
-#                        schism_exec='pschism_PAHM_TVD-VL',
-#                    ),
-#                    run_config=ecs_config,
-#                )
-#                
-#                hotstart_dirs = Glob(pattern='runs/*')(
-#                    path=task_convert_str_to_path('/efs/' + result_ensemble_dir)
-#                )
-#
-#                flow_run_uuid = create_flow_run.map(
-#                    flow_name=unmapped(child_flow.name),
-#                    project_name=unmapped(PREFECT_PROJECT_NAME),
-#                    parameters=task_bundle_params.map(
-#                        name=unmapped(param_storm_name),
-#                        year=unmapped(param_storm_year),
-#                        run_id=unmapped(param_run_id),
-#                        schism_exec=unmapped(
-#                            task_return_this_if_param_true_else_that(
-#                                param_wind_coupling,
-#                                'pschism_WWM_PAHM_TVD-VL',
-#                                'pschism_PAHM_TVD-VL',
-#                            )
-#                        ),
-#                        schism_dir=_task_pathlist_to_strlist(
-#                            hotstart_dirs, rel_to='/efs'
-#                        )
-#                    ),
-#                    upstream_tasks=[unmapped(coldstart_task)],
-#                    run_config=unmapped(ecs_config)
-#                )
-#
-#                hotstart_task = wait_for_flow_run.map(
-#                    flow_run_uuid, raise_final_state=unmapped(True))
-#
-#
-#            ref_tasks.append(coldstart_task)
-#            ref_tasks.append(hotstart_task)
-#
-#    flow.set_reference_tasks(ref_tasks)
-#    return flow
+@flow
+def flow_sta_html_aws(
+    name: str,
+    year: int,
+    tag: str
+):
+
+    cmd_list = []
+    cmd_list.append(name)
+    cmd_list.append(year)
+    cmd_list.append(f'hurricanes/{tag}/setup/schism.dir/')
+
+    kwargs = dict(
+        cluster_name=VIZ_CLUSTER,
+        ec2_template=VIZ_TEMPLATE_ID,
+        description="Deterministic run visualization",
+        name_ecs_task="odssm-post",
+        name_docker="post",
+        wait_delay=20,
+        wait_attempt=45,
+        environment=[],
+        command=cmd_list
+    )
+
+    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
+
+    return ref_state
+
+
+@flow
+def flow_cmb_ensemble_aws(
+    tag: str
+):
+    cmd_list = []
+    
+    cmd_list.append('combine_ensemble')
+    cmd_list.append('--ensemble-dir')
+    cmd_list.append(f'hurricanes/{tag}/setup/ensemble.dir/')
+    cmd_list.append('--tracks-dir')
+    cmd_list.append(f'hurricanes/{tag}/setup/ensemble.dir/track_files')
+
+    kwargs = dict(
+        cluster_name=SCHISM_CLUSTER,
+        ec2_template=SCHISM_TEMPLATE_ID,
+        description="Combine ensemble output files",
+        name_ecs_task="odssm-prep",
+        name_docker="prep",
+        wait_delay=60,
+        wait_attempt=90,
+        environment=[],
+        command=cmd_list
+    )
+
+    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
+
+    return ref_state
+
+
+@flow
+def flow_ana_ensemble_aws(
+    tag: str
+):
+
+    cmd_list = []
+
+    cmd_list.append('analyze_ensemble')
+    cmd_list.append('--ensemble-dir')
+    cmd_list.append(f'hurricanes/{tag}/setup/ensemble.dir/')
+    cmd_list.append('--tracks-dir')
+    cmd_list.append(f'hurricanes/{tag}/setup/ensemble.dir/track_files')
+
+    kwargs = dict(
+        cluster_name=SCHISM_CLUSTER,
+        ec2_template=SCHISM_TEMPLATE_ID,
+        description="Analyze combined ensemble output",
+        name_ecs_task="odssm-prep",
+        name_docker="prep",
+        wait_delay=60,
+        wait_attempt=90,
+        environment=[],
+        command=cmd_list
+    )
+
+    ref_state = helper_call_prefect_task_for_ecs_job(**kwargs)
+
+    return ref_state
+
+
+@flow()
+def flow_schism_ensemble_run_aws(
+    couple_wind: bool,
+    ensemble: bool,
+    tag: str,
+):
+
+    if not ensemble:
+        rundir = f'hurricanes/{tag}/setup/schism.dir/'
+        execut = 'pschism_PAHM_TVD-VL' if couple_wind else 'pschism_WWM_PAHM_TVD-VL'
+
+        flow_schism_single_run_aws(
+            schism_dir=rundir, schism_exec=execut,
+        )
+
+    else:
+        ensemble_dir = f'hurricanes/{tag}/setup/ensemble.dir/'
+
+        # Start an EC2 to manage ensemble flow runs
+        with container_instance(tag, WF_TEMPLATE_ID) as ec2_ids:
+
+            task_add_ecs_attribute_for_ec2(ec2_ids, WF_CLUSTER, run_tag)
+
+            # TODO: How to replace?
+            ecs_config = task_create_ecsrun_config(run_tag)
+            coldstart_task = flow_dependency(
+                flow_name=child_flow.name,
+                upstream_tasks=None,
+                parameters=task_bundle_params(
+                    name=param_storm_name,
+                    year=param_storm_year,
+                    run_id=param_run_id,
+                    schism_dir=result_ensemble_dir + '/spinup',
+                    schism_exec='pschism_PAHM_TVD-VL',
+                ),
+                run_config=ecs_config,
+            )
+            
+            hotstart_dirs = Glob(pattern='runs/*')(
+                path=task_convert_str_to_path('/efs/' + result_ensemble_dir)
+            )
+
+            flow_run_uuid = create_flow_run.map(
+                flow_name=unmapped(child_flow.name),
+                project_name=unmapped(PREFECT_PROJECT_NAME),
+                parameters=task_bundle_params.map(
+                    name=unmapped(param_storm_name),
+                    year=unmapped(param_storm_year),
+                    run_id=unmapped(param_run_id),
+                    schism_exec=unmapped(
+                        task_return_this_if_param_true_else_that(
+                            param_wind_coupling,
+                            'pschism_WWM_PAHM_TVD-VL',
+                            'pschism_PAHM_TVD-VL',
+                        )
+                    ),
+                    schism_dir=_task_pathlist_to_strlist(
+                        hotstart_dirs, rel_to='/efs'
+                    )
+                ),
+                upstream_tasks=[unmapped(coldstart_task)],
+                run_config=unmapped(ecs_config)
+            )
+
+            hotstart_task = wait_for_flow_run.map(
+                flow_run_uuid, raise_final_state=unmapped(True))
+
+
+        ref_tasks.append(coldstart_task)
+        ref_tasks.append(hotstart_task)
+

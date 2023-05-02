@@ -5,7 +5,8 @@ from collections import namedtuple
 import boto3
 import dunamai
 import yaml
-#from prefect.run_configs.base import UniversalRun
+from pydantic import SecretStr
+from prefect.blocks.core import Block
 from prefect.filesystems import S3
 
 #def _get_git_version():
@@ -79,3 +80,14 @@ pw_storage = S3(
 
 aws_storage.save("aws-s3-block", overwrite=True)
 pw_storage.save("pw-s3-block", overwrite=True)
+
+
+#class CDSAPICredentials(Block):
+#    CDSAPI_URL: str
+#    CDSAPI_KEY: SecretStr
+#
+#cdsapi = CDSAPICredentials(
+#    CDSAPI_URL=os.getenv('CDSAPI_URL'),
+#    CDSAPI_KEY=os.getenv('CDSAPI_KEY')
+#)
+#cdsapi.save("cdsapi", overwrite=True)

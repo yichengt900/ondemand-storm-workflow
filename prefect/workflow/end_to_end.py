@@ -21,10 +21,10 @@ from conf import PREFECT_PROJECT_NAME, INIT_FINI_LOCK
 from tasks.data import (
     task_copy_s3_data, 
     task_init_run,
-#    task_final_results_to_s3,
-#    task_cleanup_run,
-#    task_cache_to_s3,
-#    task_cleanup_efs
+    task_final_results_to_s3,
+    task_cleanup_run,
+    task_cache_to_s3,
+    task_cleanup_efs
 )
 from tasks.utils import (
 #        task_check_param_true,
@@ -37,6 +37,7 @@ from flows.jobs.ecs import (
         flow_sim_prep_info_aws,
         flow_sim_prep_mesh_aws,
         flow_sim_prep_setup_aws,
+        flow_schism_ensemble_run_aws,
 #        make_flow_solve_ecs_task
 )
 #from flows.jobs.pw import(
@@ -168,7 +169,42 @@ def end_to_end_flow(
         wait_for=[result_gen_mesh]
     )
 
+    if not rdhpcs:
+        result_solve = flow_schism_ensemble_run_aws(
+            couple_wind=couple_wind,
+            ensemble=ensemble,
+            tag=run_tag,
+            wait_for=[result_setup_model]
+        )
+    else:
+        # TODO
+#        result_solve =
+        pass
 
+    if not ensemble:
+        result_gen_viz = flow_sta_html_aws(
+            name, year, run_tag,
+            wait_for=[result_solve]
+        )
+
+    else:
+        # TODO
+#        result_gen_viz =
+        pass
+
+    result_move_to_s3 = task_final_results_to_s3(
+            name, year, run_tag,
+            wait_for=[result_gen_viz])
+
+    result_cleanup_run = task_cleanup_run(
+            result_run_tag, wait_for=[result_move_to_s3])
+
+    with flock(INIT_FINI_LOCK):
+        result_cache_storage = task_cache_to_s3(
+                wait_for=[result_cleanup_run])
+        task_cleanup_efs(
+                result_run_tag,
+                wait_for=[result_cache_storage])
 
 
 if __name__ == "__main__":
@@ -179,7 +215,6 @@ def OLD_make_workflow():
     # Create flow objects
     flow_mesh_rdhpcs_pw_task = make_flow_mesh_rdhpcs_pw_task()
     flow_mesh_rdhpcs = make_flow_mesh_rdhpcs(flow_mesh_rdhpcs_pw_task)
-    flow_schism_ensemble_run_aws = make_flow_solve_ecs_task(flow_schism_single_run_aws)
     flow_solve_rdhpcs_pw_task = make_flow_solve_rdhpcs_pw_task()
     flow_solve_rdhpcs = make_flow_solve_rdhpcs(flow_solve_rdhpcs_pw_task)
 
