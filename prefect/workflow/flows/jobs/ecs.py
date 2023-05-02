@@ -333,8 +333,8 @@ def flow_schism_single_run_aws(
     cmd_list.append(schism_exec)
 
     kwargs = dict(
-        cluster_name=OCSMESH_CLUSTER,
-        ec2_template=OCSMESH_TEMPLATE_2_ID,
+        cluster_name=SCHISM_CLUSTER,
+        ec2_template=SCHISM_TEMPLATE_ID,
         description="Run SCHISM",
         name_ecs_task="odssm-solve",
         name_docker="solve",
@@ -446,7 +446,7 @@ def flow_schism_ensemble_run_aws(
 
     if not ensemble:
         rundir = f'hurricanes/{tag}/setup/schism.dir/'
-        execut = 'pschism_PAHM_TVD-VL' if couple_wind else 'pschism_WWM_PAHM_TVD-VL'
+        execut = 'pschism_WWM_PAHM_TVD-VL' if couple_wind else 'pschism_PAHM_TVD-VL' 
 
         flow_schism_single_run_aws(
             schism_dir=rundir, schism_exec=execut,

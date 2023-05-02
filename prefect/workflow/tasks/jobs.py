@@ -6,11 +6,6 @@ from functools import partial
 import boto3
 import prefect
 from prefect import task, get_run_logger
-#from prefect.tasks.shell import ShellTask
-#from prefect.tasks.templates import StringFormatter
-#from prefect.tasks.aws.client_waiter import AWSClientWait 
-#from prefect.triggers import any_failed, all_finished
-#from prefect.engine.signals import FAIL
 
 import pw_client
 from conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME, log_group_name
