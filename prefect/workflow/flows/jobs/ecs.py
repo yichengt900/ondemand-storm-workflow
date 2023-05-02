@@ -81,11 +81,6 @@ def helper_call_prefect_task_for_ecs_job(
 
         result_tasks_list = task_pylist_from_jsonlist(result_ecs_task)
 
-#        result_wait_ecs = task_wait_ecs_tasks_stopped(
-#            cluster=cluster_name,
-#            tasks=result_tasks_list,
-#            delay=wait_delay,
-#            max_attempt=wait_attempt
         result_wait_ecs = client_waiter(
             'ecs',
             'tasks_stopped',

@@ -964,7 +964,7 @@ resource "aws_launch_template" "odssm-solve-instance-template" {
     tags = merge(
       local.common_tags,
       {
-        Role = "Run model preparation tasks"
+        Role = "Run solver tasks"
       }
     )
   }
