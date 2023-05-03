@@ -1,10 +1,13 @@
 import os
+import logging
 from pathlib import Path
 
 from prefect import flow, allow_failure, unmapped
 from prefect_shell import shell_run_command
 from prefect_aws.client_waiter import client_waiter
 from prefect_aws import AwsCredentials
+
+logging.basicConfig(level=logging.DEBUG)
 
 #from prefect.tasks.files.operations import Glob
 

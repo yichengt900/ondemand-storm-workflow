@@ -38,7 +38,7 @@ from flows.jobs.ecs import (
         flow_sim_prep_mesh_aws,
         flow_sim_prep_setup_aws,
         flow_schism_ensemble_run_aws,
-#        make_flow_solve_ecs_task
+        flow_sta_html_aws,
 )
 #from flows.jobs.pw import(
 #        make_flow_mesh_rdhpcs_pw_task,

@@ -25,6 +25,9 @@ shell_run_task = " ".join([
 
 @task(name='prep-ecs-cmd', description="Prepare ECS run command")
 def task_format_start_task(template, **kwargs):
+
+    logger = get_run_logger()
+
     aux = {}
     cluster = kwargs['cluster']
     env_list = kwargs.get('env', [])
@@ -86,6 +89,7 @@ def task_format_start_task(template, **kwargs):
             instance_ids=" ".join(ecs_instance_arns),
             **kwargs)
 
+    logger.info(formatted_cmd)
     return formatted_cmd
 
 

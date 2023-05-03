@@ -159,6 +159,7 @@
           AWS_PAGER: ""
           CDSAPI_URL: "{{ cdsapi_url }}"
           CDSAPI_KEY: "{{ cdsapi_key }}"
+          PREFECT_LOGGING_LEVEL: "DEBUG"
 
         volumes:
           - /efs:/efs
