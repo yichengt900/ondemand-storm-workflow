@@ -441,10 +441,10 @@ def flow_schism_ensemble_run_aws(
     ensemble: bool,
     tag: str,
 ):
+    execut = 'pschism_WWM_PAHM_TVD-VL' if couple_wind else 'pschism_PAHM_TVD-VL' 
 
     if not ensemble:
         rundir = f'hurricanes/{tag}/setup/schism.dir/'
-        execut = 'pschism_WWM_PAHM_TVD-VL' if couple_wind else 'pschism_PAHM_TVD-VL' 
 
         flow_schism_single_run_aws(
             schism_dir=rundir, schism_exec=execut,

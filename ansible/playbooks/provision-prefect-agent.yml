@@ -63,6 +63,7 @@
     docker_image: "{{ prefect_image }}:v0.5"
     cdsapi_url: "{{ lookup('env', 'CDSAPI_URL') }}"
     cdsapi_key: "{{ lookup('env', 'CDSAPI_KEY') }}"
+#    ansible_python_interpreter: /usr/bin/python3
 
   tasks:
     - name: Install packages 
@@ -106,6 +107,15 @@
           - docker
         # Needed to deal with older requests which is not installed via pip
         extra_args: --ignore-installed
+
+    - name: Install urllib3
+      pip:
+        name: urllib3
+        extra_args: --force
+
+    - name: Install requests
+      pip:
+        name: requests
 
     - name: Create mount directory
       file:
@@ -159,7 +169,6 @@
           AWS_PAGER: ""
           CDSAPI_URL: "{{ cdsapi_url }}"
           CDSAPI_KEY: "{{ cdsapi_key }}"
-          PREFECT_LOGGING_LEVEL: "DEBUG"
 
         volumes:
           - /efs:/efs
