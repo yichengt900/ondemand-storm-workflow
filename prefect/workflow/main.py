@@ -91,21 +91,15 @@ def main():
         flow=flow_schism_single_run_aws,
         name=ECS_SOLVE_DEPLOY_NAME,
         description="Run flow as ECS task",
-        work_queue_name="test-ec2",
+        work_queue_name="test-ecs",
         path="/flows/ondemand/",
         storage=aws_storage,
         infrastructure=ECSTask(
-#            image=WF_IMG,
             cluster=WF_CLUSTER,
             task_definition_arn=WF_ECS_TASK_ARN,
-            launch_type='EC2',
-            task_customizations=[
-                {
-                    "op": "add",
-                    "path": "/placementConstraint/type",
-                    "value": "distinctInstance",
-                }
-            ]
+            launch_type='FARGATE',
+            cpu=4096,
+            memory=4096,
         )
         # NO DEFAULTS
 #        parameters=dict(

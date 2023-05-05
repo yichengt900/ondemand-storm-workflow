@@ -121,7 +121,7 @@ def flow_dependency(deployment_name, parameters):
     flow_run = run_deployment(
         name=deployment_name,
         parameters=parameters,
-        flow_run_name=f'Start "{flow_name}"'
+        flow_run_name=f'Start "{deployment_name}"'
     )
 
     return flow_run

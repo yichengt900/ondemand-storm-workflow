@@ -454,35 +454,25 @@ def flow_schism_ensemble_run_aws(
     else:
         ensemble_dir = f'hurricanes/{tag}/setup/ensemble.dir/'
 
-        # Start an EC2 to manage ensemble flow runs
-        with container_instance(tag, WF_TEMPLATE_ID) as ec2_ids:
-
-#            task_add_ecs_attribute_for_ec2(ec2_ids, WF_CLUSTER, run_tag)
-
-            # TODO: Test robustness of placement for multiple ensemble
-            # runs
-
-            # TODO: OR use Fargate with ECSRun.run()
-            # TODO: OR use task_cutomization
-            coldstart_task = flow_dependency(
-                deployment_name=ECS_SOLVE_DEPLOY_NAME,
-                wait_for=None,
-                parameters=dict(
-                    schism_dir=ensemble_dir + '/spinup',
-                    schism_exec='pschism_PAHM_TVD-VL',
-                ),
-            )
-            
-            hotstart_task = flow_dependency.map(
-                deployment_name=unmapped(ECS_SOLVE_DEPLOY_NAME),
-                parameters=[
-                    {
-                        'schism_exec': execut,
-                        'schism_dir': str(p.relative_to(rel_to))
-                    }
-                    for p in Path('/efs'/ensemble_dir).glob('runs/*')
-                ],
-                wait_for=[unmapped(coldstart_task)],
-            )
+        coldstart_task = flow_dependency(
+            deployment_name=ECS_SOLVE_DEPLOY_NAME,
+            wait_for=None,
+            parameters=dict(
+                schism_dir=ensemble_dir + '/spinup',
+                schism_exec='pschism_PAHM_TVD-VL',
+            ),
+        )
+        
+        hotstart_task = flow_dependency.map(
+            deployment_name=unmapped(ECS_SOLVE_DEPLOY_NAME),
+            parameters=[
+                {
+                    'schism_exec': execut,
+                    'schism_dir': str(p.relative_to(rel_to))
+                }
+                for p in Path('/efs'/ensemble_dir).glob('runs/*')
+            ],
+            wait_for=[unmapped(coldstart_task)],
+        )
 
         return hotstart_task

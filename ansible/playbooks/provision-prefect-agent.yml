@@ -158,7 +158,7 @@
         password: "{{ ecr_credentials[1] }}"
         reauthorize: yes
 
-    - name: Register Prefect Local agent
+    - name: Register Prefect agent
       docker_container:
         name: "prefect-aws"
         image: "{{ docker_image }}"
@@ -175,7 +175,7 @@
         command: sh -c "prefect cloud login --key "{{ key }}" --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-ec2"
         state: started
 
-    - name: Register Prefect Local agent 2
+    - name: Register Prefect agent 2
       docker_container:
         name: "prefect-pw-local"
         image: "{{ docker_image }}"
@@ -191,6 +191,23 @@
         volumes:
           - /efs:/efs
         command: sh -c "prefect cloud login --key "{{ key }}" --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-pw-local"
+        state: started
+
+    - name: Register Prefect agent 3
+      docker_container:
+        name: "prefect-aws"
+        image: "{{ docker_image }}"
+        container_default_behavior: "compatibility"
+        env:
+          AWS_DEFAULT_REGION: "{{ aws_default_region }}"
+          # fixes aws-cli command output issue
+          AWS_PAGER: ""
+          CDSAPI_URL: "{{ cdsapi_url }}"
+          CDSAPI_KEY: "{{ cdsapi_key }}"
+
+        volumes:
+          - /efs:/efs
+        command: sh -c "prefect cloud login --key "{{ key }}" --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-ecs"
         state: started
 
 
