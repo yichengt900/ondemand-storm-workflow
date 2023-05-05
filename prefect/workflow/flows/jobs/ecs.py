@@ -275,7 +275,7 @@ def flow_sim_prep_setup_aws(
     else:
         cmd_list.append("setup_ensemble")
         cmd_list.append("--track-file")
-        cmd_list.appnd(f'hurricanes/{tag}/nhc_track/hurricane-track.dat')
+        cmd_list.append(f'hurricanes/{tag}/nhc_track/hurricane-track.dat')
         cmd_list.append("--output-directory")
         cmd_list.append(f'hurricanes/{tag}/setup/ensemble.dir/')
         cmd_list.append("--num-perturbations")
@@ -462,6 +462,7 @@ def flow_schism_ensemble_run_aws(
             # TODO: Test robustness of placement for multiple ensemble
             # runs
 
+            # TODO: OR use Fargate with ECSRun.run()
             coldstart_task = flow_dependency(
                 deployment_name=ECS_SOLVE_DEPLOY_NAME,
                 wait_for=None,
