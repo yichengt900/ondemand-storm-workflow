@@ -17,7 +17,7 @@ from conf import (
     VIZ_CLUSTER, VIZ_TEMPLATE_ID,
     WF_CLUSTER, WF_TEMPLATE_ID,
     ECS_TASK_ROLE, ECS_EXEC_ROLE,
-    PREFECT_PROJECT_NAME,
+    ECS_SOLVE_DEPLOY_NAME
 )
 from tasks.infra import (
     container_instance,
@@ -36,6 +36,7 @@ from tasks.utils import (
     task_get_flow_run_id,
 #    task_convert_str_to_path,
 )
+from flows.utils import flow_dependency
 
 
 #info_flow_ecs_task_details = {
@@ -456,55 +457,33 @@ def flow_schism_ensemble_run_aws(
         # Start an EC2 to manage ensemble flow runs
         with container_instance(tag, WF_TEMPLATE_ID) as ec2_ids:
 
-            task_add_ecs_attribute_for_ec2(ec2_ids, WF_CLUSTER, run_tag)
+#            task_add_ecs_attribute_for_ec2(ec2_ids, WF_CLUSTER, run_tag)
 
-            # TODO: How to replace? We set cluster to be WF in the#
-            # deployment, but we don't have placement constraint like
-            # before! Maybe just use workers instead?
-            ecs_config = task_create_ecsrun_config(run_tag)
+            # TODO: Test robustness of placement for multiple ensemble
+            # runs
+
             coldstart_task = flow_dependency(
-                flow_name=child_flow.name,
-                upstream_tasks=None,
-                parameters=task_bundle_params(
+                deployment_name=ECS_SOLVE_DEPLOY_NAME,
+                wait_for=None,
+                parameters=dict(
                     name=param_storm_name,
                     year=param_storm_year,
                     run_id=param_run_id,
-                    schism_dir=result_ensemble_dir + '/spinup',
+                    schism_dir=ensemble_dir + '/spinup',
                     schism_exec='pschism_PAHM_TVD-VL',
                 ),
-                run_config=ecs_config,
             )
             
-            hotstart_dirs = Glob(pattern='runs/*')(
-                path=task_convert_str_to_path('/efs/' + result_ensemble_dir)
+            hotstart_task = flow_dependency.map(
+                deployment_name=unmapped(ECS_SOLVE_DEPLOY_NAME),
+                parameters=[
+                    {
+                        'schism_exec': execut,
+                        'schism_dir': str(p.relative_to(rel_to))
+                    }
+                    for p in Path('/efs'/ensemble_dir).glob('runs/*')
+                ],
+                wait_for=[unmapped(coldstart_task)],
             )
 
-            flow_run_uuid = create_flow_run.map(
-                flow_name=unmapped(child_flow.name),
-                project_name=unmapped(PREFECT_PROJECT_NAME),
-                parameters=task_bundle_params.map(
-                    name=unmapped(param_storm_name),
-                    year=unmapped(param_storm_year),
-                    run_id=unmapped(param_run_id),
-                    schism_exec=unmapped(
-                        task_return_this_if_param_true_else_that(
-                            param_wind_coupling,
-                            'pschism_WWM_PAHM_TVD-VL',
-                            'pschism_PAHM_TVD-VL',
-                        )
-                    ),
-                    schism_dir=_task_pathlist_to_strlist(
-                        hotstart_dirs, rel_to='/efs'
-                    )
-                ),
-                upstream_tasks=[unmapped(coldstart_task)],
-                run_config=unmapped(ecs_config)
-            )
-
-            hotstart_task = wait_for_flow_run.map(
-                flow_run_uuid, raise_final_state=unmapped(True))
-
-
-        ref_tasks.append(coldstart_task)
-        ref_tasks.append(hotstart_task)
-
+        return hotstart_task

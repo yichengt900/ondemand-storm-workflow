@@ -3,7 +3,12 @@ from prefect.deployments import Deployment
 from prefect.filesystems import S3
 from prefect_aws.ecs import ECSTask
 
-from conf import WF_IMG, WF_CLUSTER
+from conf import (
+    WF_IMG,
+    WF_CLUSTER,
+    WF_ECS_TASK_ARN,
+    ECS_SOLVE_DEPLOY_NAME,
+)
 from end_to_end import end_to_end_flow
 from flows.jobs.ecs import flow_schism_single_run_aws
 
@@ -14,7 +19,8 @@ def main():
 
     deployment = Deployment.build_from_flow(
         flow=end_to_end_flow,
-        name="End to end",
+        name="end-to-end",
+        description="End to end modeling workflow",
         work_queue_name="test-ec2",
         path="/flows/ondemand/",
         storage=aws_storage,
@@ -83,13 +89,15 @@ def main():
     # AND OVERWRITE AND PASS TO deployment( but can we, deployment is static!)
     deployment = Deployment.build_from_flow(
         flow=flow_schism_single_run_aws,
-        name="Run flow as ECS task",
+        name=ECS_SOLVE_DEPLOY_NAME,
+        description="Run flow as ECS task",
         work_queue_name="test-ec2",
         path="/flows/ondemand/",
         storage=aws_storage,
         infrastructure=ECSTask(
-            image=WF_IMG,
+#            image=WF_IMG,
             cluster=WF_CLUSTER,
+            task_definition_arn=WF_ECS_TASK_ARN,
             launch_type='EC2',
         )
         # NO DEFAULTS

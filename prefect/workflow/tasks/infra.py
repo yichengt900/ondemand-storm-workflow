@@ -241,6 +241,7 @@ def container_instance(run_tag, template_id):
 
     finally:
         # NOTE: We destroy by tag
+        # TODO: First set to draining?
         task_destroy_ec2_by_tag(run_tag)
 
 

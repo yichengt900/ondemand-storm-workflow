@@ -52,6 +52,9 @@ TERRAFORM_CONFIG_FILE = THIS_FILE.parent.parent/'vars_from_terraform'
 WORKFLOW_TAG_NAME = "Workflow Tag"
 INIT_FINI_LOCK = "/efs/.initfini.lock"
 
+
+ECS_SOLVE_DEPLOY_NAME = "flow-as-ecs"
+
 #run_cfg_local_aws_cred = UniversalRun(labels=['tacc-odssm-local'])
 #run_cfg_local_pw_cred = UniversalRun(labels=['tacc-odssm-local-for-rdhpcs'])
 #run_cfg_rdhpcsc_mesh_cluster = UniversalRun(labels=['tacc-odssm-rdhpcs-mesh-cluster'])
