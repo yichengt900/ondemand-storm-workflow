@@ -99,6 +99,13 @@ def main():
             cluster=WF_CLUSTER,
             task_definition_arn=WF_ECS_TASK_ARN,
             launch_type='EC2',
+            task_customizations=[
+                {
+                    "op": "add",
+                    "path": "/placementConstraint/type",
+                    "value": "distinctInstance",
+                }
+            ]
         )
         # NO DEFAULTS
 #        parameters=dict(

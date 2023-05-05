@@ -463,13 +463,11 @@ def flow_schism_ensemble_run_aws(
             # runs
 
             # TODO: OR use Fargate with ECSRun.run()
+            # TODO: OR use task_cutomization
             coldstart_task = flow_dependency(
                 deployment_name=ECS_SOLVE_DEPLOY_NAME,
                 wait_for=None,
                 parameters=dict(
-                    name=param_storm_name,
-                    year=param_storm_year,
-                    run_id=param_run_id,
                     schism_dir=ensemble_dir + '/spinup',
                     schism_exec='pschism_PAHM_TVD-VL',
                 ),
