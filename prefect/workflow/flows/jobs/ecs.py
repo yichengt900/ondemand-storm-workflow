@@ -15,7 +15,7 @@ from conf import (
     OCSMESH_CLUSTER, OCSMESH_TEMPLATE_1_ID, OCSMESH_TEMPLATE_2_ID,
     SCHISM_CLUSTER, SCHISM_TEMPLATE_ID,
     VIZ_CLUSTER, VIZ_TEMPLATE_ID,
-    WF_CLUSTER, WF_TEMPLATE_ID, WF_IMG,
+    WF_CLUSTER, WF_TEMPLATE_ID,
     ECS_TASK_ROLE, ECS_EXEC_ROLE,
     PREFECT_PROJECT_NAME,
 )
@@ -458,7 +458,9 @@ def flow_schism_ensemble_run_aws(
 
             task_add_ecs_attribute_for_ec2(ec2_ids, WF_CLUSTER, run_tag)
 
-            # TODO: How to replace?
+            # TODO: How to replace? We set cluster to be WF in the#
+            # deployment, but we don't have placement constraint like
+            # before! Maybe just use workers instead?
             ecs_config = task_create_ecsrun_config(run_tag)
             coldstart_task = flow_dependency(
                 flow_name=child_flow.name,

@@ -197,14 +197,13 @@ def end_to_end_flow(
             wait_for=[result_gen_viz])
 
     result_cleanup_run = task_cleanup_run(
-            result_run_tag, wait_for=[result_move_to_s3])
+            run_tag, wait_for=[result_move_to_s3])
 
     with flock(INIT_FINI_LOCK):
         result_cache_storage = task_cache_to_s3(
                 wait_for=[result_cleanup_run])
         task_cleanup_efs(
-                result_run_tag,
-                wait_for=[result_cache_storage])
+            run_tag, wait_for=[result_cache_storage])
 
 
 if __name__ == "__main__":

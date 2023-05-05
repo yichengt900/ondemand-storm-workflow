@@ -3,7 +3,7 @@ from prefect.deployments import Deployment
 from prefect.filesystems import S3
 from prefect_aws.ecs import ECSTask
 
-from conf import WF_IMG
+from conf import WF_IMG, WF_CLUSTER
 from end_to_end import end_to_end_flow
 from flows.jobs.ecs import flow_schism_single_run_aws
 
@@ -75,13 +75,23 @@ def main():
 #    )
 #    deployment.apply(upload=False)
 #
+    # We need to create the EC2 for the cluster, but 
+    # we cannot destroy it as we cannot force placement like before
+
+
+    # TODO WHY NOT DYNAMICALLY CREATE A NEW TASK WITH PLACEMENT CONSTRAINT
+    # AND OVERWRITE AND PASS TO deployment( but can we, deployment is static!)
     deployment = Deployment.build_from_flow(
         flow=flow_schism_single_run_aws,
         name="Run flow as ECS task",
         work_queue_name="test-ec2",
         path="/flows/ondemand/",
         storage=aws_storage,
-        infrastructure=ECSTask(image=WF_IMG)
+        infrastructure=ECSTask(
+            image=WF_IMG,
+            cluster=WF_CLUSTER,
+            launch_type='EC2',
+        )
         # NO DEFAULTS
 #        parameters=dict(
 #            schism_dir: Path,
