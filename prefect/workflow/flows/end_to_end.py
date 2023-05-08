@@ -16,9 +16,9 @@ from pprint import pprint
 from prefect import flow
 from prefect.filesystems import S3
 
-from conf import S3_BUCKET
-from conf import PREFECT_PROJECT_NAME, INIT_FINI_LOCK
-from tasks.data import (
+from workflow.conf import S3_BUCKET
+from workflow.conf import PREFECT_PROJECT_NAME, INIT_FINI_LOCK
+from workflow.tasks.data import (
     task_copy_s3_data, 
     task_init_run,
     task_final_results_to_s3,
@@ -26,14 +26,14 @@ from tasks.data import (
     task_cache_to_s3,
     task_cleanup_efs
 )
-from tasks.utils import (
+from workflow.tasks.utils import (
 #        task_check_param_true,
 #        task_bundle_params,
         task_get_flow_run_id,
         task_get_run_tag,
         flock,
 )
-from flows.jobs.ecs import (
+from workflow.flows.jobs.ecs import (
         flow_sim_prep_info_aws,
         flow_sim_prep_mesh_aws,
         flow_sim_prep_setup_aws,

@@ -11,7 +11,7 @@ from prefect_shell import ShellOperation
 #from prefect.tasks.templates import StringFormatter
 #from prefect.engine.signals import SKIP
 
-from conf import LOG_STDERR, RESULT_S3, STATIC_S3, DOCKER_VERS
+from workflow.conf import LOG_STDERR, RESULT_S3, STATIC_S3, DOCKER_VERS
 
 @task(name="static", description="Copy static data to EFS")
 def task_copy_s3_data():

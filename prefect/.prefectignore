@@ -52,4 +52,5 @@ environment.yml
 LICENSE
 README.md
 terraform.tfvars
+vars_from*
 *.swp

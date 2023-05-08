@@ -15,8 +15,8 @@ from prefect import task, get_run_logger
 #from prefect import resource_manager
 #from prefect.agent.ecs.agent import ECSAgent
 
-import pw_client
-from conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME
+import workflow.pw_client
+from workflow.conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME
 
 shell_list_cluster_instance_arns = " ".join([
     "aws ecs list-container-instances",

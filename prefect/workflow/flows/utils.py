@@ -6,18 +6,9 @@ from dunamai import Version
 from slugify import slugify
 import prefect
 from prefect import task
-#from prefect.tasks.prefect import StartFlowRun
-#from prefect.tasks.prefect.flow_run import create_flow_run, wait_for_flow_run
-#from prefect.backend.flow_run import FlowRunView
-#from prefect.tasks.prefect.flow_run_cancel import CancelFlowRun
-#from prefect.storage import S3
-#from prefect.engine.results.s3_result import S3Result
-#from prefect.executors import LocalDaskExecutor
-#from prefect.triggers import all_finished
-#from prefect.run_configs.ecs import ECSRun
 from prefect.deployments import run_deployment
 
-from conf import (
+from workflow.conf import (
     S3_BUCKET, PW_S3, PW_S3_PREFIX, pw_s3_cred, 
     PREFECT_PROJECT_NAME,
     WF_CLUSTER, WF_IMG, WF_ECS_TASK_ARN,

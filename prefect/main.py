@@ -3,14 +3,14 @@ from prefect.deployments import Deployment
 from prefect.filesystems import S3
 from prefect_aws.ecs import ECSTask
 
-from conf import (
+from workflow.conf import (
     WF_IMG,
     WF_CLUSTER,
     WF_ECS_TASK_ARN,
     ECS_SOLVE_DEPLOY_NAME,
 )
-from end_to_end import end_to_end_flow
-from flows.jobs.ecs import flow_schism_single_run_aws
+from workflow.flows.end_to_end import end_to_end_flow
+from workflow.flows.jobs.ecs import flow_schism_single_run_aws
 
 
 def main():

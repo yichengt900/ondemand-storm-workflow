@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 #from prefect.tasks.files.operations import Glob
 
-from conf import (
+from workflow.conf import (
     OCSMESH_CLUSTER, OCSMESH_TEMPLATE_1_ID, OCSMESH_TEMPLATE_2_ID,
     SCHISM_CLUSTER, SCHISM_TEMPLATE_ID,
     VIZ_CLUSTER, VIZ_TEMPLATE_ID,
@@ -19,24 +19,24 @@ from conf import (
     ECS_TASK_ROLE, ECS_EXEC_ROLE,
     ECS_SOLVE_DEPLOY_NAME
 )
-from tasks.infra import (
+from workflow.tasks.infra import (
     container_instance,
     task_add_ecs_attribute_for_ec2
 )
-from tasks.jobs import (
+from workflow.tasks.jobs import (
     task_format_start_task,
     shell_run_task,
     task_retrieve_task_docker_logs,
 #    task_wait_ecs_tasks_stopped,
     task_format_kill_timedout,
     task_check_docker_success)
-from tasks.utils import (
+from workflow.tasks.utils import (
     task_pylist_from_jsonlist,
     task_get_run_tag,
     task_get_flow_run_id,
 #    task_convert_str_to_path,
 )
-from flows.utils import flow_dependency
+from workflow.flows.utils import flow_dependency
 
 
 #info_flow_ecs_task_details = {

@@ -1,7 +1,7 @@
 from prefect import case
 
-from tasks.params import param_storm_name, param_storm_year, param_run_id
-from tasks.infra import (
+from workflow.tasks.params import param_storm_name, param_storm_year, param_run_id
+from workflow.tasks.infra import (
     task_format_list_cluster_instance_arns,
     task_list_cluster_instance_arns,
     task_check_if_ec2_needed,
@@ -17,8 +17,8 @@ from tasks.infra import (
     task_format_term_ec2,
     task_create_ec2_w_tag,
     task_destroy_ec2_by_tag)
-from tasks.utils import task_pylist_from_jsonlist, task_get_run_tag
-from flows.utils import LocalAWSFlow
+from workflow.tasks.utils import task_pylist_from_jsonlist, task_get_run_tag
+from workflow.flows.utils import LocalAWSFlow
 
 def make_flow_create_infra(flow_name, cluster_name, ec2_template):
     with LocalAWSFlow(flow_name) as flow:

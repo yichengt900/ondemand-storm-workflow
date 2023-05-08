@@ -3,8 +3,8 @@ from prefect.tasks.secrets import EnvVarSecret
 from prefect.tasks.control_flow import merge
 from prefect.tasks.files.operations import Glob
 
-from conf import PW_S3, PW_S3_PREFIX
-from tasks.params import (
+from workflow.conf import PW_S3, PW_S3_PREFIX
+from workflow.tasks.params import (
     param_storm_name, param_storm_year, param_run_id,
     param_subset_mesh, param_ensemble,
     param_mesh_hmax,
@@ -14,7 +14,7 @@ from tasks.params import (
     param_use_rdhpcs_post,
     param_wind_coupling,
 )
-from tasks.jobs import (
+from workflow.tasks.jobs import (
     task_submit_slurm,
     task_format_mesh_slurm,
     task_format_schism_slurm,
@@ -31,10 +31,10 @@ from tasks.data import (
     task_format_s3_download,
     task_delete_from_rdhpcs,
     task_format_s3_delete)
-from tasks.infra import (
+from workflow.tasks.infra import (
     task_start_rdhpcs_cluster,
     task_stop_rdhpcs_cluster)
-from tasks.utils import (
+from workflow.tasks.utils import (
     task_check_param_true,
     task_bundle_params, task_get_run_tag,
     task_replace_tag_in_template,
@@ -43,7 +43,7 @@ from tasks.utils import (
     task_return_value_if_param_false,
     task_return_this_if_param_true_else_that,
 )
-from flows.utils import (
+from workflow.flows.utils import (
         LocalPWFlow, RDHPCSMeshFlow, RDHPCSSolveFlow, flow_dependency)
 
 
