@@ -244,7 +244,7 @@ conda activate odssm
 Then go to `prefect` directory and execute:
 
 ```sh
-python workflow/main.py register
+python main.py register
 ```
 
 This will register the workflow with the project in your Prefect

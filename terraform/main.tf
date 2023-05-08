@@ -17,6 +17,7 @@ locals {
   }
   docker_user = "ondemand-user"
   task_role_arn = "arn:aws:iam::${var.account_id}:role/${var.role_prefix}_ECS_Role"
+  task_role_arn2 = "arn:aws:iam::${var.account_id}:role/${var.role_prefix}_ECS_Role2"
   execution_role_arn = "arn:aws:iam::${var.account_id}:role/${var.role_prefix}_ECS_Role"
   ec2_profile_name = "${var.role_prefix}_ECS_Role2"
   ecs_profile_name = "${var.role_prefix}_ECS_Role"
@@ -99,7 +100,6 @@ resource "local_file" "odssm-prefect-vars" {
       OCSMESH_TEMPLATE_2_ID = aws_launch_template.odssm-prep-instance-2-template.id
       SCHISM_TEMPLATE_ID = aws_launch_template.odssm-solve-instance-template.id
       VIZ_TEMPLATE_ID = aws_launch_template.odssm-post-instance-template.id
-      WF_TEMPLATE_ID = aws_launch_template.odssm-workflow-instance-template.id
       ECS_TASK_ROLE = local.task_role_arn
       ECS_EXEC_ROLE = local.execution_role_arn
       ECS_SUBNET_ID = aws_subnet.odssm-subnet.id
@@ -724,7 +724,7 @@ resource "aws_ecs_task_definition" "odssm-flowrun-task" {
     family = "odssm-prefect-flowrun"
     network_mode = "awsvpc"
     requires_compatibilities = [ "FARGATE", "EC2" ]
-    task_role_arn = local.task_role_arn
+    task_role_arn = local.task_role_arn2
     execution_role_arn = local.execution_role_arn
 
     cpu = 2048
@@ -1038,62 +1038,6 @@ resource "aws_launch_template" "odssm-post-instance-template" {
   user_data = base64encode(data.aws_s3_object.odssm-post-ud.body)
 }
 
-###################
-resource "aws_launch_template" "odssm-workflow-instance-template" {
-
-  name = "odssm-wf"
-  description = "Instance for running Prefect Flows as ECSRun"
-  update_default_version = true
-
-  image_id = local.ecs_ami
-
-  key_name = aws_key_pair.odssm-ssh-key.key_name
-
-  instance_type = "c5.4xlarge"
-
-  # The workflow ECSRun instance needs to be able to create its own instances
-  iam_instance_profile {
-    name = local.ec2_profile_name
-  }
-
-  network_interfaces {
-    associate_public_ip_address = true
-    subnet_id = aws_subnet.odssm-subnet.id
-    security_groups = [
-#      aws_security_group.odssm-sg-default.id,
-      aws_security_group.odssm-sg-efs.id,
-      aws_security_group.odssm-sg-ecsout.id,
-      aws_security_group.odssm-sg-ssh.id,
-    ]
-  }
-
-  block_device_mappings {
-    device_name = "/dev/xvda"
-
-    ebs {
-      volume_size = 30
-    }
-  }
-
-  ebs_optimized = true
-
-  placement {
-    availability_zone = data.aws_availability_zones.available.names[local.subnet_idx]
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-
-    tags = merge(
-      local.common_tags,
-      {
-        Role = "Run ECSRun tasks"
-      }
-    )
-  }
-
-  user_data = base64encode(data.aws_s3_object.odssm-wf-ud.body)
-}
 
 resource "aws_cloudwatch_log_group" "odssm-cw-log-grp" {
   name = "odssm_ecs_task_docker_logs"
