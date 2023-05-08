@@ -452,10 +452,14 @@ def flow_schism_ensemble_run_aws(
         )
 
     else:
+
+        flow_name = flow_schism_single_run_aws.__name__.replace('_', '-')
+        deploy_name = f'{flow_name}/{ECS_SOLVE_DEPLOY_NAME}'
+
         ensemble_dir = f'hurricanes/{tag}/setup/ensemble.dir/'
 
         coldstart_task = flow_dependency(
-            deployment_name=ECS_SOLVE_DEPLOY_NAME,
+            deployment_name=deploy_name,
             wait_for=None,
             parameters=dict(
                 schism_dir=ensemble_dir + '/spinup',
@@ -464,13 +468,13 @@ def flow_schism_ensemble_run_aws(
         )
         
         hotstart_task = flow_dependency.map(
-            deployment_name=unmapped(ECS_SOLVE_DEPLOY_NAME),
+            deployment_name=unmapped(deploy_name),
             parameters=[
                 {
                     'schism_exec': execut,
                     'schism_dir': str(p.relative_to(rel_to))
                 }
-                for p in Path('/efs'/ensemble_dir).glob('runs/*')
+                for p in Path(f'/efs/{ensemble_dir}').glob('runs/*')
             ],
             wait_for=[unmapped(coldstart_task)],
         )

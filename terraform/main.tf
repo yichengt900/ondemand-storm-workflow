@@ -722,11 +722,10 @@ resource "aws_ecs_task_definition" "odssm-post-task" {
 resource "aws_ecs_task_definition" "odssm-flowrun-task" {
 
     family = "odssm-prefect-flowrun"
-    network_mode = "bridge"
-    requires_compatibilities = [ "EC2" ]
-    # Use the instance profile the task si running on instead
-#    task_role_arn = local.task_role_arn
-#    execution_role_arn = local.execution_role_arn
+    network_mode = "awsvpc"
+    requires_compatibilities = [ "FARGATE", "EC2" ]
+    task_role_arn = local.task_role_arn
+    execution_role_arn = local.execution_role_arn
 
     container_definitions = jsonencode([
       {
@@ -736,6 +735,12 @@ resource "aws_ecs_task_definition" "odssm-flowrun-task" {
         essential = true
 
         memoryReservation = 500 # MB
+        portMappings = [
+          {
+            containerPort = 2049
+            hostPort      = 2049
+          }
+        ]
         mountPoints = [
           {
             containerPath = "/efs"

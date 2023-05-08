@@ -53,7 +53,7 @@ WORKFLOW_TAG_NAME = "Workflow Tag"
 INIT_FINI_LOCK = "/efs/.initfini.lock"
 
 
-ECS_SOLVE_DEPLOY_NAME = "flow-as-ecs"
+ECS_SOLVE_DEPLOY_NAME = "flow-solve-as-ecs"
 
 #run_cfg_local_aws_cred = UniversalRun(labels=['tacc-odssm-local'])
 #run_cfg_local_pw_cred = UniversalRun(labels=['tacc-odssm-local-for-rdhpcs'])

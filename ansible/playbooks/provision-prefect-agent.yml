@@ -160,7 +160,7 @@
 
     - name: Register Prefect agent
       docker_container:
-        name: "prefect-aws"
+        name: "prefect-ec2"
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
@@ -195,7 +195,7 @@
 
     - name: Register Prefect agent 3
       docker_container:
-        name: "prefect-aws"
+        name: "prefect-ecs"
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
