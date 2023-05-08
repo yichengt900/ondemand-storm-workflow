@@ -727,6 +727,9 @@ resource "aws_ecs_task_definition" "odssm-flowrun-task" {
     task_role_arn = local.task_role_arn
     execution_role_arn = local.execution_role_arn
 
+    cpu = 2048
+    memory = 4096
+
     container_definitions = jsonencode([
       {
         name = "flow"
@@ -735,6 +738,7 @@ resource "aws_ecs_task_definition" "odssm-flowrun-task" {
         essential = true
 
         memoryReservation = 500 # MB
+
         portMappings = [
           {
             containerPort = 2049

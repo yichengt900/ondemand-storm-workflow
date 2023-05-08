@@ -99,8 +99,6 @@ def main():
             cluster=WF_CLUSTER,
             task_definition_arn=WF_ECS_TASK_ARN,
             launch_type='FARGATE',
-            cpu=2048,
-            memory=4096,
         )
         # NO DEFAULTS
 #        parameters=dict(
