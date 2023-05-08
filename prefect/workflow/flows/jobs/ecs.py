@@ -472,7 +472,7 @@ def flow_schism_ensemble_run_aws(
             parameters=[
                 {
                     'schism_exec': execut,
-                    'schism_dir': str(p.relative_to(rel_to))
+                    'schism_dir': str(p.relative_to('/efs'))
                 }
                 for p in Path(f'/efs/{ensemble_dir}').glob('runs/*')
             ],
