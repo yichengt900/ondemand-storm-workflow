@@ -447,7 +447,7 @@ def flow_schism_ensemble_run_aws(
     if not ensemble:
         rundir = f'hurricanes/{tag}/setup/schism.dir/'
 
-        flow_schism_single_run_aws(
+        return flow_schism_single_run_aws(
             schism_dir=rundir, schism_exec=execut,
         )
 

@@ -1,7 +1,7 @@
 FROM continuumio/miniconda3:22.11.1-alpine
 
 # Create a non-root user
-ARG username=ocsmesher
+ARG username=prefecter
 ARG uid=1000
 ARG gid=100
 
@@ -66,6 +66,8 @@ ENV TZ UTC
 RUN cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 USER $USER
+
+WORKDIR $HOME
 
 RUN echo "source $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
 
