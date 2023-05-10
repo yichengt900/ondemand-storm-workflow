@@ -15,7 +15,7 @@ from workflow.conf import (
     OCSMESH_CLUSTER, OCSMESH_TEMPLATE_1_ID, OCSMESH_TEMPLATE_2_ID,
     SCHISM_CLUSTER, SCHISM_TEMPLATE_ID,
     VIZ_CLUSTER, VIZ_TEMPLATE_ID,
-    WF_CLUSTER,
+    WF_CLUSTER, WF_TEMPLATE_ID,
     ECS_TASK_ROLE, ECS_EXEC_ROLE,
     ECS_SOLVE_DEPLOY_NAME
 )
@@ -452,31 +452,33 @@ def flow_schism_ensemble_run_aws(
         )
 
     else:
+        # Start an EC2 to manage ensemble flow runs
+        with container_instance(tag, WF_TEMPLATE_ID) as ec2_ids:
 
-        flow_name = flow_schism_single_run_aws.__name__.replace('_', '-')
-        deploy_name = f'{flow_name}/{ECS_SOLVE_DEPLOY_NAME}'
+            flow_name = flow_schism_single_run_aws.__name__.replace('_', '-')
+            deploy_name = f'{flow_name}/{ECS_SOLVE_DEPLOY_NAME}'
 
-        ensemble_dir = f'hurricanes/{tag}/setup/ensemble.dir/'
+            ensemble_dir = f'hurricanes/{tag}/setup/ensemble.dir/'
 
-        coldstart_task = flow_dependency(
-            deployment_name=deploy_name,
-            wait_for=None,
-            parameters=dict(
-                schism_dir=ensemble_dir + '/spinup',
-                schism_exec='pschism_PAHM_TVD-VL',
-            ),
-        )
-        
-        hotstart_task = flow_dependency.map(
-            deployment_name=unmapped(deploy_name),
-            parameters=[
-                {
-                    'schism_exec': execut,
-                    'schism_dir': str(p.relative_to('/efs'))
-                }
-                for p in Path(f'/efs/{ensemble_dir}').glob('runs/*')
-            ],
-            wait_for=[unmapped(coldstart_task)],
-        )
+            coldstart_task = flow_dependency(
+                deployment_name=deploy_name,
+                wait_for=None,
+                parameters=dict(
+                    schism_dir=ensemble_dir + '/spinup',
+                    schism_exec='pschism_PAHM_TVD-VL',
+                ),
+            )
+            
+            hotstart_task = flow_dependency.map(
+                deployment_name=unmapped(deploy_name),
+                parameters=[
+                    {
+                        'schism_exec': execut,
+                        'schism_dir': str(p.relative_to('/efs'))
+                    }
+                    for p in Path(f'/efs/{ensemble_dir}').glob('runs/*')
+                ],
+                wait_for=[unmapped(coldstart_task)],
+            )
 
         return hotstart_task

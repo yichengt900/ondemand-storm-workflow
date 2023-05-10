@@ -98,7 +98,7 @@ def main():
             image=WF_IMG,
             cluster=WF_CLUSTER,
             task_definition_arn=WF_ECS_TASK_ARN,
-            launch_type='FARGATE',
+            launch_type='EC2',
         )
         # NO DEFAULTS
 #        parameters=dict(
