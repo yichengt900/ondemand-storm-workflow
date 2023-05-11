@@ -56,89 +56,65 @@ def task_init_run(run_tag):
 
 
 
-#task_format_s3_upload = StringFormatter(
-#    name="Prepare path to upload to rdhpcs S3",
-#    template='; '.join(
-#        ["find /efs/hurricanes/{run_tag}/  -type l -exec bash -c"
-#            + " 'for i in \"$@\"; do"
-#            + "   readlink $i > $i.symlnk;"
-#            # Don't remove actual links from the EFS
-##            + "   rm -rf $i;"
-#            + " done' _ {{}} +",
-#         "aws s3 sync --no-follow-symlinks"
-#            + " /efs/hurricanes/{run_tag}/"
-#            + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/",
-#        ]))
-#
-#task_upload_to_rdhpcs = ShellTask(
-#    name="Copy from efs to rdhpcs s3",
-#)
-#
-#task_format_s3_download = StringFormatter(
-#    name="Prepare path to download from rdhpcs S3",
-#    template='; '.join(
-#        ["aws s3 sync"
-#             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
-#             + " /efs/hurricanes/{run_tag}/",
-#         "find /efs/hurricanes/{run_tag}/  -type f -name '*.symlnk' -exec bash -c"
-#            + " 'for i in \"$@\"; do"
-#            + "   ln -sf $(cat $i) ${{i%.symlnk}};"
+def format_s3_upload(run_tag, bucket_name, bucket_prefix):
+    reutrn '\n'.join(
+        [f"find /efs/hurricanes/{run_tag}/  -type l -exec bash -c"
+            + " 'for i in \"$@\"; do"
+            + "   readlink $i > $i.symlnk;"
+            # Don't remove actual links from the EFS
 #            + "   rm -rf $i;"
-#            + " done' _ {{}} +",
-#        ]))
-#
-#task_download_from_rdhpcs = ShellTask(
-#    name="Download from rdhpcs s3 to efs",
-#)
-#
-#
-#task_format_copy_s3_to_lustre = StringFormatter(
-#    name="Prepare path to Luster from S3  on RDHPCS cluster",
-#    template='; '.join(
-#        ["aws s3 sync"
-#             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
-#             + " /lustre/hurricanes/{run_tag}/",
-#         "find /lustre/hurricanes/{run_tag}/  -type f -name '*.symlnk' -exec bash -c"
-#            + " 'for i in \"$@\"; do"
-#            + "   ln -sf $(cat $i) ${{i%.symlnk}};"
+            + " done' _ {} +",
+         "aws s3 sync --no-follow-symlinks"
+            + f" /efs/hurricanes/{run_tag}/"
+            + f" s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/",
+        ])
+
+
+def format_s3_download(run_tag, bucket_name, bucket_prefix):
+    return '\n'.join(
+        ["aws s3 sync"
+             + f" s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
+             + f" /efs/hurricanes/{run_tag}/",
+         f"find /efs/hurricanes/{run_tag}/  -type f -name '*.symlnk' -exec bash -c"
+            + " 'for i in \"$@\"; do"
+            + "   ln -sf $(cat $i) ${i%.symlnk};"
+            + "   rm -rf $i;"
+            + " done' _ {} +",
+        ])
+
+
+def format_copy_s3_to_lustre(run_tag, bucket_name, bucket_prefix):
+    return '\n'.join(
+        ["aws s3 sync"
+             + f" s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
+             + f" /lustre/hurricanes/{run_tag}/",
+         f"find /lustre/hurricanes/{run_tag}/  -type f -name '*.symlnk' -exec bash -c"
+            + " 'for i in \"$@\"; do"
+            + "   ln -sf $(cat $i) ${i%.symlnk};"
+            + "   rm -rf $i;"
+            + " done' _ {} +",
+        ])
+
+
+def format_copy_lustre_to_s3 = StringFormatter(
+    name="Prepare path to S3 from Luster on RDHPCS cluster",
+    template='; '.join(
+        ["find /lustre/hurricanes/{run_tag}/  -type l -exec bash -c"
+            + " 'for i in \"$@\"; do"
+            + "   readlink $i > $i.symlnk;"
+            # Don't remove the actual links from the luster
 #            + "   rm -rf $i;"
-#            + " done' _ {{}} +",
-#        ]))
-#
-#task_download_s3_to_luster = ShellTask(
-#    name="Download data from RDHPCS S3 onto RDHPCS cluster /lustre",
-#    return_all=True,
-#    log_stderr=LOG_STDERR,
-#)
-#
-#task_format_copy_lustre_to_s3 = StringFormatter(
-#    name="Prepare path to S3 from Luster on RDHPCS cluster",
-#    template='; '.join(
-#        ["find /lustre/hurricanes/{run_tag}/  -type l -exec bash -c"
-#            + " 'for i in \"$@\"; do"
-#            + "   readlink $i > $i.symlnk;"
-#            # Don't remove the actual links from the luster
-##            + "   rm -rf $i;"
-#            + " done' _ {{}} +",
-#         "aws s3 sync --no-follow-symlinks"
-#             + " /lustre/hurricanes/{run_tag}/"
-#             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
-#        ]))
-#
-#task_upload_luster_to_s3 = ShellTask(
-#    name="Upload data from RDHPCS cluster /lustre onto RDHPCS S3",
-#    return_all=True,
-#    log_stderr=LOG_STDERR,
-#)
-#
+            + " done' _ {{}} +",
+         "aws s3 sync --no-follow-symlinks"
+             + " /lustre/hurricanes/{run_tag}/"
+             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
+        ]))
+
 #task_format_s3_delete = StringFormatter(
 #    name="Prepare path to remove from rdhpcs S3",
 #    template="aws s3 rm --recursive"
 #             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/")
 #
-#task_delete_from_rdhpcs = ShellTask(
-#    name="Delete from rdhpcs s3",
-#)
 
 @task(name='efs-to-s3', description="Copy final results to S3 for longterm storage")
 def task_final_results_to_s3(storm_name, storm_year, run_tag):

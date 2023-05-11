@@ -40,12 +40,10 @@ from workflow.flows.jobs.ecs import (
         flow_schism_ensemble_run_aws,
         flow_sta_html_aws,
 )
-#from flows.jobs.pw import(
-#        make_flow_mesh_rdhpcs_pw_task,
-#        make_flow_mesh_rdhpcs,
-#        make_flow_solve_rdhpcs_pw_task,
-#        make_flow_solve_rdhpcs)
-#from flows.utils import LocalAWSFlow, flow_dependency
+from workflow.flows.jobs.pw import(
+    flow_mesh_rdhpcs,
+    flow_solve_rdhpcs,
+)
 
 
 # TODO: Later add build image and push to ECS logic into Prefect workflow
@@ -117,19 +115,26 @@ def end_to_end_flow(
         wait_for=[result_init_run]
     )
 
-    result_gen_mesh = flow_sim_prep_mesh_aws(
-        name=name,
-        year=year,
-        subset_mesh=subset_mesh,
-        mesh_hmax=mesh_hmax,
-        mesh_hmin_low=mesh_hmin_low,
-        mesh_rate_low=mesh_rate_low,
-        mesh_cutoff=mesh_cutoff,
-        mesh_hmin_high=mesh_hmin_high,
-        mesh_rate_high=mesh_rate_high,
-        tag=run_tag,
-        wait_for=[result_get_info]
-    )
+    if not rdhpcs:
+        result_gen_mesh = flow_sim_prep_mesh_aws(
+            name=name,
+            year=year,
+            subset_mesh=subset_mesh,
+            mesh_hmax=mesh_hmax,
+            mesh_hmin_low=mesh_hmin_low,
+            mesh_rate_low=mesh_rate_low,
+            mesh_cutoff=mesh_cutoff,
+            mesh_hmin_high=mesh_hmin_high,
+            mesh_rate_high=mesh_rate_high,
+            tag=run_tag,
+            wait_for=[result_get_info]
+        )
+    else:
+        # TODO
+        result_gen_mesh = flow_mesh_rdhpcs(
+                wait_for=[result_get_info],
+#                params..
+        )
 
     result_setup_model = flow_sim_prep_setup_aws(
         name=name,
@@ -154,8 +159,10 @@ def end_to_end_flow(
         )
     else:
         # TODO
-#        result_solve =
-        pass
+        result_solve = flow_solve_rdhpcs(
+                wait_for=[result_setup_model],
+#                params..
+        )
 
     if not ensemble:
         result_gen_viz = flow_sta_html_aws(
@@ -187,54 +194,6 @@ if __name__ == "__main__":
 
 
 def OLD_make_workflow():
-    # Create flow objects
-    flow_mesh_rdhpcs_pw_task = make_flow_mesh_rdhpcs_pw_task()
-    flow_mesh_rdhpcs = make_flow_mesh_rdhpcs(flow_mesh_rdhpcs_pw_task)
-    flow_solve_rdhpcs_pw_task = make_flow_solve_rdhpcs_pw_task()
-    flow_solve_rdhpcs = make_flow_solve_rdhpcs(flow_solve_rdhpcs_pw_task)
-
-
-    with LocalAWSFlow("end-to-end") as flow_main:
-
-        after_sim_prep_info = flow_dependency(
-                flow_name=flow_sim_prep_info_aws.name,
-                upstream_tasks=[result_init_run],
-                parameters=result_bundle_params_1)
-
-        # TODO: Meshing based-on original track for now
-        # TODO: If mesh each track: diff mesh
-
-
-        with case(result_is_rdhpcs_on, True):
-            after_sim_prep_mesh_b1 = flow_dependency(
-                    flow_name=flow_mesh_rdhpcs.name,
-                    upstream_tasks=[after_sim_prep_info],
-                    parameters=result_bundle_params_2)
-        with case(result_is_rdhpcs_on, False):
-            after_sim_prep_mesh_b2 = flow_dependency(
-                    flow_name=flow_sim_prep_mesh_aws.name,
-                    upstream_tasks=[after_sim_prep_info],
-                    parameters=result_bundle_params_2)
-        after_sim_prep_mesh = merge(after_sim_prep_mesh_b1, after_sim_prep_mesh_b2)
-
-        after_sim_prep_setup = flow_dependency(
-                flow_name=flow_sim_prep_setup_aws.name,
-                upstream_tasks=[after_sim_prep_mesh],
-                parameters=result_bundle_params_3)
-
-        with case(result_is_rdhpcs_on, True):
-            after_run_schism_b1 = flow_dependency(
-                    flow_name=flow_solve_rdhpcs.name,
-                    upstream_tasks=[after_sim_prep_setup],
-                    parameters=result_bundle_params_1)
-        with case(result_is_rdhpcs_on, False):
-            after_run_schism_b2 = flow_dependency(
-                flow_name=flow_schism_ensemble_run_aws.name,
-                upstream_tasks=[after_sim_prep_setup],
-                parameters=result_bundle_params_1)
-        after_run_schism = merge(after_run_schism_b1, after_run_schism_b2)
-
-
         with case(result_is_ensemble_on, True):
             with case(result_is_rdhpcspost_on, False):
                 after_cmb_ensemble = flow_dependency(
@@ -250,47 +209,7 @@ def OLD_make_workflow():
                 # TODO:
                 pass
 
-        with case(result_is_ensemble_on, False):
-            after_sta_html = flow_dependency(
-                flow_name=flow_sta_html_aws.name,
-                upstream_tasks=[after_run_schism],
-                parameters=result_bundle_params_1)
-        after_gen_viz = merge(after_ana_ensemble, after_sta_html)
         
-        # TODO: Make this a separate flow?
-        after_results_to_s3 = task_final_results_to_s3(
-                param_storm_name, param_storm_year, result_run_tag,
-                upstream_tasks=[after_gen_viz])
-
-        after_cleanup_run = task_cleanup_run(
-                result_run_tag, upstream_tasks=[after_results_to_s3])
-
-        with FLock(INIT_FINI_LOCK, upstream_tasks=[after_cleanup_run], task_args={'name': 'Sync cleanup'}):
-            after_cache_storage = task_cache_to_s3(
-                    upstream_tasks=[after_cleanup_run])
-            task_cleanup_efs(
-                    result_run_tag,
-                    upstream_tasks=[after_cache_storage])
-
-    flow_main.set_reference_tasks([after_cleanup_run])
-
-    all_flows = [
-        flow_sim_prep_info_aws,
-        flow_sim_prep_mesh_aws,
-        flow_sim_prep_setup_aws,
-        flow_mesh_rdhpcs_pw_task,
-        flow_mesh_rdhpcs,
-        flow_schism_single_run_aws,
-        flow_schism_ensemble_run_aws,
-        flow_solve_rdhpcs_pw_task,
-        flow_solve_rdhpcs,
-        flow_sta_html_aws,
-        flow_cmb_ensemble_aws,
-        flow_ana_ensemble_aws,
-        flow_main
-    ]
-
-    return all_flows
 
 # def _regiser(flows):
 #     # Register unregistered flows

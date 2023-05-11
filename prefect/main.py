@@ -11,6 +11,12 @@ from workflow.conf import (
 )
 from workflow.flows.end_to_end import end_to_end_flow
 from workflow.flows.jobs.ecs import flow_schism_single_run_aws
+from workflow.flows.jobs.pw import (
+    flow_mesh_rdhpcs_slurm,
+    flow_mesh_rdhpcs,
+    flow_solve_rdhpcs_slurm,
+    flow_solve_rdhpcs
+)
 
 
 def main():
@@ -45,42 +51,46 @@ def main():
     )
     deployment.apply(upload=True)
 
-#    deployment = Deployment.build_from_flow(
-#        flow=PWXPLACEHOLDER,
-#        name="PW local",
-#        work_queue_name="test-pw-local",
-#        path="/flows/ondemand/",
-#        storage=aws_storage,
-#        parameters=dict(
-#            ...
-#        )
-#    )
-#    deployment.apply(upload=False)
-#
-#    deployment = Deployment.build_from_flow(
-#        flow=PW1PLACEHOLDER,
-#        name="PW mesh",
-#        work_queue_name="test-pw-mesh",
-#        path="/Soroosh.Mani/flows/ondemand/",
-#        storage=pw_storage,
-#        parameters=dict(
-#            ...
-#        )
-#    )
-#    deployment.apply(upload=True)
-#
-#    deployment = Deployment.build_from_flow(
-#        flow=PW2PLACEHOLDER,
-#        name="PW mesh",
-#        work_queue_name="test-pw-solve",
-#        path="/Soroosh.Mani/flows/ondemand/",
-#        storage=pw_storage,
-#        parameters=dict(
-#            ...
-#        )
-#    )
-#    deployment.apply(upload=False)
-#
+    deployment = Deployment.build_from_flow(
+        flow=flow_mesh_rdhpcs,
+        name="pw-mesh",
+        work_queue_name="test-pw-local",
+        path="/flows/ondemand/",
+        storage=aws_storage,
+#        parameters=dict()
+    )
+    deployment.apply(upload=False)
+
+    deployment = Deployment.build_from_flow(
+        flow=flow_solve_rdhpcs,
+        name="pw-solve",
+        work_queue_name="test-pw-local",
+        path="/flows/ondemand/",
+        storage=aws_storage,
+#        parameters=dict()
+    )
+    deployment.apply(upload=False)
+
+    deployment = Deployment.build_from_flow(
+        flow=flow_mesh_rdhpcs_slurm,
+        name="pw-mesh-slurm",
+        work_queue_name="test-pw-mesh",
+        path="/Soroosh.Mani/flows/ondemand/",
+        storage=pw_storage,
+#        parameters=dict()
+    )
+    deployment.apply(upload=True)
+
+    deployment = Deployment.build_from_flow(
+        flow=flow_solve_rdhpcs_slurm,
+        name="pw-solve-slurm",
+        work_queue_name="test-pw-solve",
+        path="/Soroosh.Mani/flows/ondemand/",
+        storage=pw_storage,
+#        parameters=dict()
+    )
+    deployment.apply(upload=False)
+
     # We need to create the EC2 for the cluster, but 
     # we cannot destroy it as we cannot force placement like before
 
@@ -99,6 +109,7 @@ def main():
             cluster=WF_CLUSTER,
             task_definition_arn=WF_ECS_TASK_ARN,
             launch_type='EC2',
+            # TODO: Try FARGATE + vpc_id input to work with EFS
         )
         # NO DEFAULTS
 #        parameters=dict(

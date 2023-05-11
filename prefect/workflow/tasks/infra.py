@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import boto3
 import prefect
 from prefect import task, get_run_logger
+from prefect_aws.client_waiter import client_waiter
 #from prefect.tasks.shell import ShellTask
 #from prefect.tasks.aws.client_waiter import AWSClientWait 
 #from prefect import task
@@ -217,14 +218,18 @@ def task_add_ecs_attribute_for_ec2(ec2_instance_ids, cluster, run_tag):
 
 @contextmanager
 def container_instance(run_tag, template_id):
-    # TODO: Make all the segments separate tasks so that wait is a
-    # part of create, etc.
     ec2_client = boto3.client('ec2')
 
     ec2_instance_ids = task_create_ec2_w_tag(template_id, run_tag)
 
-    waiter = ec2_client.get_waiter('instance_status_ok')
-    waiter.wait(InstanceIds=ec2_instance_ids)
+    result_wait_instance = client_waiter(
+        'ec2',
+        'instance_status_ok',
+        AwsCredentials(),
+        name='wait-ec2-ok',
+        InstanceIds=ec2_instance_ids,
+        return_state=True
+    )
 
     response = ec2_client.describe_instances(InstanceIds=ec2_instance_ids)
     instance_ips = [
@@ -247,7 +252,7 @@ def container_instance(run_tag, template_id):
 
 @task(name="Start RDHPCS cluster")
 def task_start_rdhpcs_cluster(api_key, cluster_name):
-    c = pw_client.Client(PW_URL, api_key)
+    c = pw_client.Client(PW_URL, api_key.get_secret_value())
 
     # check if resource exists and is on
     cluster = c.get_resource(cluster_name)

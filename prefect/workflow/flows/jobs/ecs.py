@@ -89,6 +89,7 @@ def helper_call_prefect_task_for_ecs_job(
             'ecs',
             'tasks_stopped',
             AwsCredentials(),
+            name='wait-ecstask-stopped',
             cluster=cluster_name,
             tasks=result_tasks_list,
             WaiterConfig=dict(Delay=wait_delay, MaxAttempts=wait_attempt)
@@ -100,7 +101,7 @@ def helper_call_prefect_task_for_ecs_job(
                 container_name=name_docker,
                 wait_for=[allow_failure(result_wait_ecs)])
 
-        # Timeout based on Prefect wait
+        # TODO: Timeout based on Prefect wait
 #        if any_upstream_failed:
 #            shell_run_command.map(
 #                wait_for=[unmapped(result_wait_ecs)],
@@ -471,6 +472,7 @@ def flow_schism_ensemble_run_aws(
                 return_state=True,
             )
             
+            # TODO: Check if successful
             hotstart_task = flow_dependency.map(
                 deployment_name=unmapped(deploy_name),
                 parameters=[

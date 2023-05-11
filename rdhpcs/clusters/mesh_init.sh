@@ -41,4 +41,4 @@ date > ~/_initialized_
 
 # This is executed only for head (ALLNODES not specified at the top)
 source odssm-prefect/bin/activate
-prefect agent local start --key  `cat /contrib/Soroosh.Mani/secrets/prefect.key` --label tacc-odssm-rdhpcs-mesh-cluster --name tacc-odssm-agent-rdhpcs-mesh-cluster --log-level INFO
+prefect cloud login --key `cat /contrib/Soroosh.Mani/secrets/prefect.key` --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-pw-mesh

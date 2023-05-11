@@ -201,8 +201,7 @@ def task_wait_rdhpcs_job(api_key, decod_job_id):
             raise Exception('Simulation had an error. Please try again')
 
 
-@task(name="Prepare Slurm script to submit the batch job")
-def task_format_mesh_slurm(storm_name, storm_year, kwds):
+def format_mesh_slurm(storm_name, storm_year, kwds):
     return " ".join(
         ["sbatch",
          ",".join([
@@ -215,14 +214,8 @@ def task_format_mesh_slurm(storm_name, storm_year, kwds):
     )
 
 
-#task_submit_slurm = ShellTask(
-#    name="Submit batch job on meshing cluster",
-#    return_all=False, # Need single line reult for job ID extraction
-#    log_stderr=LOG_STDERR,
-#)
 
-
-@task(name="Wait for slurm job")
+@task(name='wait-slurm', description="Wait for slurm job")
 def task_wait_slurm_done(job_id):
 
     logger = get_run_logger()
@@ -258,11 +251,9 @@ def task_wait_slurm_done(job_id):
 
         raise RuntimeError(f"Slurm job failed with status {status}")
 
-#task_format_schism_slurm = StringFormatter(
-#    name="Prepare Slurm script to submit the batch job",
-#    template=" ".join(
-#        ["sbatch",
-#         "--export=ALL,STORM_PATH=\"{run_path}\",SCHISM_EXEC=\"{schism_exec}\"",
-#         "~/schism.sbatch"]
-#    )
-#)
+def format_schism_slurm(run_path, schism_exec):
+    return " ".join(
+        ["sbatch",
+         f"--export=ALL,STORM_PATH=\"{run_path}\",SCHISM_EXEC=\"{schism_exec}\"",
+         "~/schism.sbatch"]
+    )
