@@ -453,6 +453,7 @@ def flow_schism_ensemble_run_aws(
 
     else:
         # Start an EC2 to manage ensemble flow runs
+        # TODO: Add placement constraint!!!
         with container_instance(tag, WF_TEMPLATE_ID) as ec2_ids:
 
             flow_name = flow_schism_single_run_aws.__name__.replace('_', '-')
@@ -467,6 +468,7 @@ def flow_schism_ensemble_run_aws(
                     schism_dir=ensemble_dir + '/spinup',
                     schism_exec='pschism_PAHM_TVD-VL',
                 ),
+                return_state=True,
             )
             
             hotstart_task = flow_dependency.map(
@@ -479,6 +481,7 @@ def flow_schism_ensemble_run_aws(
                     for p in Path(f'/efs/{ensemble_dir}').glob('runs/*')
                 ],
                 wait_for=[unmapped(coldstart_task)],
+                return_state=True,
             )
 
         return hotstart_task
