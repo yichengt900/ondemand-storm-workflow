@@ -89,7 +89,6 @@ def helper_call_prefect_task_for_ecs_job(
             'ecs',
             'tasks_stopped',
             AwsCredentials(),
-            name='wait-ecstask-stopped',
             cluster=cluster_name,
             tasks=result_tasks_list,
             WaiterConfig=dict(Delay=wait_delay, MaxAttempts=wait_attempt)

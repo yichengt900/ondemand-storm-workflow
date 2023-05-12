@@ -55,18 +55,18 @@ def main():
         flow=flow_mesh_rdhpcs,
         name="pw-mesh",
         work_queue_name="test-pw-local",
-        path="/flows/ondemand/",
-        storage=aws_storage,
+        path="/Soroosh.Mani/flows/ondemand/",
+        storage=pw_storage, # Agent has PW s3 cred
 #        parameters=dict()
     )
-    deployment.apply(upload=False)
+    deployment.apply(upload=True)
 
     deployment = Deployment.build_from_flow(
         flow=flow_solve_rdhpcs,
         name="pw-solve",
         work_queue_name="test-pw-local",
-        path="/flows/ondemand/",
-        storage=aws_storage,
+        path="/Soroosh.Mani/flows/ondemand/",
+        storage=pw_storage, # Agent has PW s3 cred
 #        parameters=dict()
     )
     deployment.apply(upload=False)
@@ -79,7 +79,7 @@ def main():
         storage=pw_storage,
 #        parameters=dict()
     )
-    deployment.apply(upload=True)
+    deployment.apply(upload=False)
 
     deployment = Deployment.build_from_flow(
         flow=flow_solve_rdhpcs_slurm,
@@ -111,11 +111,6 @@ def main():
             launch_type='EC2',
             # TODO: Try FARGATE + vpc_id input to work with EFS
         )
-        # NO DEFAULTS
-#        parameters=dict(
-#            schism_dir: Path,
-#            schism_exec: Path
-#        )
     )
     deployment.apply(upload=False)
 

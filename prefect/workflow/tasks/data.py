@@ -8,10 +8,8 @@ import boto3
 import prefect
 from prefect import task
 from prefect_shell import ShellOperation
-#from prefect.tasks.templates import StringFormatter
-#from prefect.engine.signals import SKIP
 
-from workflow.conf import LOG_STDERR, RESULT_S3, STATIC_S3, DOCKER_VERS
+from workflow.conf import LOG_STDERR, RESULT_S3, STATIC_S3
 
 @task(name="static", description="Copy static data to EFS")
 def task_copy_s3_data():
@@ -39,7 +37,7 @@ def task_init_run(run_tag):
     run_info['start_date'] = now.strftime("%Y-%m-%d %H:%M:%S %Z")
     run_info['run_tag'] = run_tag
 #    run_info['git_commit'] = COMMIT_HASH
-    run_info['ecs_images'] = DOCKER_VERS
+#    run_info['ecs_images'] = DOCKER_VERS
     run_info['prefect'] = {}
     task_ctx = prefect.context.get_run_context().task_run.dict()
 #    run_info['prefect']['parameters'] = prefect.context.parameters
@@ -57,7 +55,7 @@ def task_init_run(run_tag):
 
 
 def format_s3_upload(run_tag, bucket_name, bucket_prefix):
-    reutrn '\n'.join(
+    return '\n'.join(
         [f"find /efs/hurricanes/{run_tag}/  -type l -exec bash -c"
             + " 'for i in \"$@\"; do"
             + "   readlink $i > $i.symlnk;"
@@ -96,25 +94,23 @@ def format_copy_s3_to_lustre(run_tag, bucket_name, bucket_prefix):
         ])
 
 
-def format_copy_lustre_to_s3 = StringFormatter(
-    name="Prepare path to S3 from Luster on RDHPCS cluster",
-    template='; '.join(
-        ["find /lustre/hurricanes/{run_tag}/  -type l -exec bash -c"
+def format_copy_lustre_to_s3(run_tag, bucket_name, bucket_prefix):
+    return '\n'.join(
+        [f"find /lustre/hurricanes/{run_tag}/  -type l -exec bash -c"
             + " 'for i in \"$@\"; do"
             + "   readlink $i > $i.symlnk;"
             # Don't remove the actual links from the luster
 #            + "   rm -rf $i;"
             + " done' _ {{}} +",
          "aws s3 sync --no-follow-symlinks"
-             + " /lustre/hurricanes/{run_tag}/"
-             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
-        ]))
+             + f" /lustre/hurricanes/{run_tag}/"
+             + f" s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/"
+        ])
 
-#task_format_s3_delete = StringFormatter(
-#    name="Prepare path to remove from rdhpcs S3",
-#    template="aws s3 rm --recursive"
-#             + " s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/")
-#
+def format_s3_delete(run_tag, bucket_name, bucket_prefix):
+    return ("aws s3 rm --recursive"
+             + f" s3://{bucket_name}/{bucket_prefix}/hurricanes/{run_tag}/")
+
 
 @task(name='efs-to-s3', description="Copy final results to S3 for longterm storage")
 def task_final_results_to_s3(storm_name, storm_year, run_tag):

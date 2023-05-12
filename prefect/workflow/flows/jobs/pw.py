@@ -1,7 +1,7 @@
 import os
 
 from pydantic import SecretStr
-from prefect import task, flow, unmapped
+from prefect import task, flow, unmapped, get_run_logger
 from prefect_shell import shell_run_command
 
 #from workflow.conf import PW_S3, PW_S3_PREFIX
@@ -10,19 +10,18 @@ from workflow.tasks.jobs import (
     format_schism_slurm,
     task_wait_slurm_done,
 )
-from tasks.data import (
+from workflow.tasks.data import (
     format_copy_s3_to_lustre,
     format_copy_lustre_to_s3,
     format_s3_upload,
     format_s3_download,
-    task_format_s3_delete
+    format_s3_delete,
 )
 from workflow.tasks.infra import (
     task_start_rdhpcs_cluster,
-    task_stop_rdhpcs_cluster)
-from workflow.tasks.utils import (
-    task_convert_str_to_path,
+    task_stop_rdhpcs_cluster,
 )
+from workflow.flows.utils import flow_dependency
 
 
 
@@ -82,7 +81,7 @@ def flow_mesh_rdhpcs_slurm(
             storm_name=name,
             storm_year=year,
             kwds=cmd_list
-        )
+        ),
         return_all=False, # need a single line for job ID
         wait_for=[result_s3_to_lustre]
     )
@@ -245,7 +244,7 @@ def flow_solve_rdhpcs_slurm(
             return_state=True,
         )
         result_wait_slurm_done = task_wait_slurm_done.map(
-            job_id=result_after_hotstart
+            job_id=result_after_hotstart,
             return_state=True
         )
 
@@ -325,8 +324,7 @@ def flow_solve_rdhpcs(
     # 7. COPY SOLUTION FROM S3 TO EFS
     if rdhpcs_post:
         result_download_from_rdhpcs = shell_run_command(
-#                upstream_tasks=[result_wait_rdhpcs_job],
-            upstream_tasks=[after_schism_on_rdhpcs],
+            wait_for=[after_schism_on_rdhpcs],
             command=format_s3_download(
                 run_tag=result_run_tag,
                 bucket_name=PW_S3,

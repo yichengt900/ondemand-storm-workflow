@@ -36,4 +36,5 @@ date > ~/_initialized_
 
 # This is executed only for head (ALLNODES not specified at the top)
 source odssm-prefect/bin/activate
-prefect cloud login --key `cat /contrib/Soroosh.Mani/secrets/prefect.key` --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-pw-solve
+prefect cloud login --key `cat /contrib/Soroosh.Mani/secrets/prefect.key` --workspace sorooshmaninoaagov/ondemand-workflow
+prefect agent start -q test-pw-solve

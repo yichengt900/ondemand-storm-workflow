@@ -186,8 +186,6 @@
           PW_API_KEY: "{{ pw_api_key }}"
           # fixes aws-cli command output issue
           AWS_PAGER: ""
-          CDSAPI_URL: "{{ cdsapi_url }}"
-          CDSAPI_KEY: "{{ cdsapi_key }}"
         volumes:
           - /efs:/efs
         command: sh -c "prefect cloud login --key "{{ key }}" --workspace sorooshmaninoaagov/ondemand-workflow && prefect agent start -q test-pw-local"
@@ -202,8 +200,6 @@
           AWS_DEFAULT_REGION: "{{ aws_default_region }}"
           # fixes aws-cli command output issue
           AWS_PAGER: ""
-          CDSAPI_URL: "{{ cdsapi_url }}"
-          CDSAPI_KEY: "{{ cdsapi_key }}"
 
         volumes:
           - /efs:/efs

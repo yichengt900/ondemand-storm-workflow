@@ -18,6 +18,11 @@ from prefect.filesystems import S3
 
 def _get_docker_versions():
 
+    # Unlike before where prefect code was executed during DAG
+    # creation, this code is now executed during run in Prefect 2
+    # So if it doesn't have access to the main AWS account it fails!
+    # TODO: Find a solution!
+
     version_dict = {}
     ecs = boto3.client('ecs')
     # Workflow always uses the latest ECS task
@@ -32,8 +37,9 @@ def _get_docker_versions():
     return version_dict
 
 # Version info
+# TODO:
 #COMMIT_HASH = _get_git_version()
-DOCKER_VERS = _get_docker_versions()
+#DOCKER_VERS = _get_docker_versions()
 
 # Constants
 PW_URL = "https://noaa.parallel.works"

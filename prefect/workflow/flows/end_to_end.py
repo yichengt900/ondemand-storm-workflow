@@ -44,6 +44,7 @@ from workflow.flows.jobs.pw import(
     flow_mesh_rdhpcs,
     flow_solve_rdhpcs,
 )
+from workflow.flows.utils import flow_dependency
 
 
 # TODO: Later add build image and push to ECS logic into Prefect workflow
@@ -130,12 +131,28 @@ def end_to_end_flow(
             wait_for=[result_get_info]
         )
     else:
-        # TODO
-        result_gen_mesh = flow_mesh_rdhpcs(
-                wait_for=[result_get_info],
-#                params..
+        flow_name = flow_mesh_rdhpcs.__name__.replace('_', '-')
+        deploy_name = f'{flow_name}/pw-mesh'
+        result_gen_mesh = flow_dependency(
+            deployment_name=deploy_name,
+            wait_for=[result_get_info],
+            parameters=dict(
+                name=name,
+                year=year,
+                subset_mesh=subset_mesh,
+                mesh_hmax=mesh_hmax,
+                mesh_hmin_low=mesh_hmin_low,
+                mesh_rate_low=mesh_rate_low,
+                mesh_cutoff=mesh_cutoff,
+                mesh_hmin_high=mesh_hmin_high,
+                mesh_rate_high=mesh_rate_high,
+                tag=run_tag,
+            ),
+            return_state=True,
         )
 
+    # TODO: Why the flow dependecy task failure doesn't result in direct
+    # fail and goes to next step?
     result_setup_model = flow_sim_prep_setup_aws(
         name=name,
         year=year,
@@ -157,12 +174,23 @@ def end_to_end_flow(
             tag=run_tag,
             wait_for=[result_setup_model]
         )
+
     else:
-        # TODO
-        result_solve = flow_solve_rdhpcs(
-                wait_for=[result_setup_model],
-#                params..
+        flow_name = flow_solve_rdhpcs.__name__.replace('_', '-')
+        deploy_name = f'{flow_name}/pw-solve'
+        result_solve = flow_dependency(
+            deployment_name=deploy_name,
+            wait_for=[result_setup_model],
+            parameters=dict(
+                name=name,
+                year=year,
+                couple_wind=couple_wind,
+                ensemble=ensemble,
+                tag=run_tag,
+            ),
+            return_state=True,
         )
+
 
     if not ensemble:
         result_gen_viz = flow_sta_html_aws(
@@ -172,8 +200,19 @@ def end_to_end_flow(
 
     else:
         # TODO
+        if not rdhpcs_post:
+            pass
+#            after_cmb_ensemble = flow_dependency(
+#                flow_name=flow_cmb_ensemble_aws.name,
+#                upstream_tasks=[after_run_schism],
+#                parameters=result_bundle_params_1)
+#            after_ana_ensemble = flow_dependency(
+#                flow_name=flow_ana_ensemble_aws.name,
+#                upstream_tasks=[after_cmb_ensemble],
+#                parameters=result_bundle_params_1)
 #        result_gen_viz =
-        pass
+        else:
+            pass
 
     result_move_to_s3 = task_final_results_to_s3(
             name, year, run_tag,
@@ -191,71 +230,3 @@ def end_to_end_flow(
 
 if __name__ == "__main__":
     end_to_end_flow()
-
-
-def OLD_make_workflow():
-        with case(result_is_ensemble_on, True):
-            with case(result_is_rdhpcspost_on, False):
-                after_cmb_ensemble = flow_dependency(
-                    flow_name=flow_cmb_ensemble_aws.name,
-                    upstream_tasks=[after_run_schism],
-                    parameters=result_bundle_params_1)
-                after_ana_ensemble = flow_dependency(
-                    flow_name=flow_ana_ensemble_aws.name,
-                    upstream_tasks=[after_cmb_ensemble],
-                    parameters=result_bundle_params_1)
-
-            with case(result_is_rdhpcspost_on, True):
-                # TODO:
-                pass
-
-        
-
-# def _regiser(flows):
-#     # Register unregistered flows
-#     for flow in flows:
-#         flow.register(project_name=PREFECT_PROJECT_NAME)
-# 
-# def _viz(flows, out_dir, flow_names):
-#     flow_dict = {f.name: f for f in flows}
-#     for flow_nm in flow_names:
-#         flow = flow_dict.get(flow_nm)
-#         if flow is None:
-#             warnings.warn(f'Flow with the name {flow_nm} NOT found!')
-#         flow.visualize(filename=out_dir/flow.name, format='dot')
-# 
-# def _list(flows):
-#     flow_names = [f.name for f in flows]
-#     print("\n".join(flow_names))
-# 
-# 
-# def _main(args):
-# 
-#     _check_project()
-#     all_flows = _make_workflow()
-#     if args.command in ["register", None]:
-#         _regiser(all_flows)
-# 
-#     elif args.command == "visualize":
-#         _viz(all_flows, args.out_dir, args.flowname)
-# 
-#     elif args.command == "list":
-#         _list(all_flows)
-# 
-#     else:
-#         raise ValueError("Invalid command!")
-# 
-# if __name__ == "__main__":
-# 
-#     parser = argparse.ArgumentParser()
-#     subparsers = parser.add_subparsers(dest="command")
-#     
-#     reg_parser = subparsers.add_parser('register')
-#     viz_parser = subparsers.add_parser('visualize')
-#     list_parser = subparsers.add_parser('list')
-# 
-#     viz_parser.add_argument('flowname', nargs='+')
-#     viz_parser.add_argument(
-#         '--out-dir', '-d', type=pathlib.Path, default='.')
-#     
-#     _main(parser.parse_args())

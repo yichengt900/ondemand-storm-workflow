@@ -6,6 +6,7 @@ from contextlib import contextmanager
 import boto3
 import prefect
 from prefect import task, get_run_logger
+from prefect_aws import AwsCredentials
 from prefect_aws.client_waiter import client_waiter
 #from prefect.tasks.shell import ShellTask
 #from prefect.tasks.aws.client_waiter import AWSClientWait 
@@ -226,7 +227,6 @@ def container_instance(run_tag, template_id):
         'ec2',
         'instance_status_ok',
         AwsCredentials(),
-        name='wait-ec2-ok',
         InstanceIds=ec2_instance_ids,
         return_state=True
     )
@@ -291,22 +291,22 @@ def task_start_rdhpcs_cluster(api_key, cluster_name):
             return ip
 
 
-#@task(name="Stop RDHPCS cluster", trigger=all_finished)
-#def task_stop_rdhpcs_cluster(api_key, cluster_name):
-#
-#    c = pw_client.Client(PW_URL, api_key)
-#
-#    # check if resource exists and is on
-#    cluster = c.get_resource(cluster_name)
-#    if cluster:
-#        if cluster['status'] == "off":
-#            return
-#
-#        # TODO: Check if another job is running on the cluster
-#
-#        # if resource not on, start it
-#        time.sleep(0.2)
-#        c.stop_resource(cluster_name)
-#
-#    else:
-#        raise ValueError("Cluster name could not be found!")
+@task(name="Stop RDHPCS cluster")
+def task_stop_rdhpcs_cluster(api_key, cluster_name):
+
+    c = pw_client.Client(PW_URL, api_key)
+
+    # check if resource exists and is on
+    cluster = c.get_resource(cluster_name)
+    if cluster:
+        if cluster['status'] == "off":
+            return
+
+        # TODO: Check if another job is running on the cluster
+
+        # if resource not on, start it
+        time.sleep(0.2)
+        c.stop_resource(cluster_name)
+
+    else:
+        raise ValueError("Cluster name could not be found!")
