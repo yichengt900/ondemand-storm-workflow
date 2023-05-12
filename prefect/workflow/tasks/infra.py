@@ -17,7 +17,7 @@ from prefect_aws.client_waiter import client_waiter
 #from prefect import resource_manager
 #from prefect.agent.ecs.agent import ECSAgent
 
-import workflow.pw_client
+from workflow import pw_client 
 from workflow.conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME
 
 shell_list_cluster_instance_arns = " ".join([

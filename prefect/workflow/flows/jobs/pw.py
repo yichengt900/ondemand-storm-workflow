@@ -4,7 +4,7 @@ from pydantic import SecretStr
 from prefect import task, flow, unmapped, get_run_logger
 from prefect_shell import shell_run_command
 
-#from workflow.conf import PW_S3, PW_S3_PREFIX
+from workflow.conf import PW_S3, PW_S3_PREFIX
 from workflow.tasks.jobs import (
     format_mesh_slurm,
     format_schism_slurm,

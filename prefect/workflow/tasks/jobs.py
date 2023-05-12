@@ -7,7 +7,7 @@ import boto3
 import prefect
 from prefect import task, get_run_logger
 
-import workflow.pw_client
+from workflow import pw_client 
 from workflow.conf import LOG_STDERR, PW_URL, WORKFLOW_TAG_NAME, log_group_name
 
 
