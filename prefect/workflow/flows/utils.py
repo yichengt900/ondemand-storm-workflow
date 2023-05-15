@@ -7,6 +7,7 @@ from slugify import slugify
 import prefect
 from prefect import task
 from prefect.deployments import run_deployment
+from prefect.states import Completed
 
 from workflow.conf import (
     S3_BUCKET, PW_S3, PW_S3_PREFIX, pw_s3_cred, 
@@ -114,5 +115,8 @@ def flow_dependency(deployment_name, parameters):
         parameters=parameters,
         flow_run_name=f'Start "{deployment_name}"'
     )
+
+    if flow_run.state != Completed():
+        raise RuntimeError("The deployed subflow failed!")
 
     return flow_run

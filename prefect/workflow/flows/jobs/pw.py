@@ -47,8 +47,8 @@ def flow_mesh_rdhpcs_slurm(
             bucket_prefix=PW_S3_PREFIX
         ),
         return_all=True,
-        name='s3-to-luster',
-        description="Download data from RDHPCS S3 onto RDHPCS cluster /lustre",
+#        name='s3-to-luster',
+#        description="Download data from RDHPCS S3 onto RDHPCS cluster /lustre",
         )
 
     cmd_list = []
@@ -82,6 +82,7 @@ def flow_mesh_rdhpcs_slurm(
             storm_year=year,
             kwds=cmd_list
         ),
+        cwd=f'/lustre/hurricanes/{tag}',
         return_all=False, # need a single line for job ID
         wait_for=[result_s3_to_lustre]
     )
@@ -171,7 +172,7 @@ def flow_mesh_rdhpcs(
     result_download_from_rdhpcs = shell_run_command(
         wait_for=[after_mesh_on_rdhpcs],
         command=format_s3_download(
-            run_tag=result_run_tag,
+            run_tag=tag,
             bucket_name=PW_S3,
             bucket_prefix=PW_S3_PREFIX))
 
@@ -191,13 +192,13 @@ def flow_solve_rdhpcs_slurm(
     # 1. Copy files from S3 to /luster
     result_s3_to_lustre = shell_run_command(
         command=format_copy_s3_to_lustre(
-            run_tag=result_run_tag,
+            run_tag=tag,
             bucket_name=PW_S3,
             bucket_prefix=PW_S3_PREFIX
         ),
         return_all=True,
-        name='s3-to-luster',
-        description="Download data from RDHPCS S3 onto RDHPCS cluster /lustre",
+#        name='s3-to-luster',
+#        description="Download data from RDHPCS S3 onto RDHPCS cluster /lustre",
     )
 
     execut = 'pschism_WWM_PAHM_TVD-VL' if couple_wind else 'pschism_PAHM_TVD-VL'
@@ -209,7 +210,10 @@ def flow_solve_rdhpcs_slurm(
             command=format_schism_slurm(
                 run_path=f'hurricanes/{tag}/setup/schism.dir/',
                 schism_exec=execut,
-                wait_for=[result_s3_to_lustre]))
+                wait_for=[result_s3_to_lustre]
+            ),
+            cwd=f'/lustre/hurricanes/{tag}',
+        )
 
         result_wait_slurm_done = task_wait_slurm_done(
             job_id=result_after_single_run)
@@ -222,6 +226,7 @@ def flow_solve_rdhpcs_slurm(
                 run_path=ensemble_dir + 'spinup',
                 schism_exec='pschism_PAHM_TVD-VL'
             ),
+            cwd=f'/lustre/hurricanes/{tag}',
             wait_for=[result_s3_to_lustre]
         )
         result_wait_slurm_done_spinup = task_wait_slurm_done(
@@ -240,7 +245,8 @@ def flow_solve_rdhpcs_slurm(
                 )
                 for p in hotstart_dirs
             ],
-            wait_for=[unmapped(result_wait_slurm_done_spinup)],
+            cwd=unmapped(f'/lustre/hurricanes/{tag}'),
+            wait_for=unmapped([result_wait_slurm_done_spinup]),
             return_state=True,
         )
         result_wait_slurm_done = task_wait_slurm_done.map(
@@ -326,7 +332,7 @@ def flow_solve_rdhpcs(
         result_download_from_rdhpcs = shell_run_command(
             wait_for=[after_schism_on_rdhpcs],
             command=format_s3_download(
-                run_tag=result_run_tag,
+                run_tag=tag,
                 bucket_name=PW_S3,
                 bucket_prefix=PW_S3_PREFIX))
 
