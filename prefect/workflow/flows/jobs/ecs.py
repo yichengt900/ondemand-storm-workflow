@@ -481,7 +481,7 @@ def flow_schism_ensemble_run_aws(
                     }
                     for p in Path(f'/efs/{ensemble_dir}').glob('runs/*')
                 ],
-                wait_for=unmapped([coldstart_task]),
+                wait_for=[coldstart_task],
                 return_state=True,
             )
 

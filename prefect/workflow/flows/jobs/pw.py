@@ -89,7 +89,9 @@ def flow_mesh_rdhpcs_slurm(
 
     # 3. Check slurm job status
     result_wait_slurm_done = task_wait_slurm_done(
-        job_id=result_mesh_slurm_submitted_id)
+        job_id=result_mesh_slurm_submitted_id,
+        cwd=f'/lustre/hurricanes/{tag}',
+    )
 
     # 4. Copy /luster to S3
     result_lustre_to_s3 = shell_run_command(
@@ -216,7 +218,9 @@ def flow_solve_rdhpcs_slurm(
         )
 
         result_wait_slurm_done = task_wait_slurm_done(
-            job_id=result_after_single_run)
+            job_id=result_after_single_run,
+            cwd=f'/lustre/hurricanes/{tag}',
+        )
 
     else:
         ensemble_dir = f'hurricanes/{tag}/setup/ensemble.dir/'
@@ -230,7 +234,9 @@ def flow_solve_rdhpcs_slurm(
             wait_for=[result_s3_to_lustre]
         )
         result_wait_slurm_done_spinup = task_wait_slurm_done(
-            job_id=result_after_coldstart)
+            job_id=result_after_coldstart,
+            cwd=f'/lustre/hurricanes/{tag}',
+        )
 
 
         hotstart_dirs = list(Path(f'/lustre/{ensemble_dir}').glob('runs/*'))
@@ -246,12 +252,13 @@ def flow_solve_rdhpcs_slurm(
                 for p in hotstart_dirs
             ],
             cwd=unmapped(f'/lustre/hurricanes/{tag}'),
-            wait_for=unmapped([result_wait_slurm_done_spinup]),
+            wait_for=[result_wait_slurm_done_spinup],
             return_state=True,
         )
         result_wait_slurm_done = task_wait_slurm_done.map(
             job_id=result_after_hotstart,
-            return_state=True
+            return_state=True,
+            cwd=unmapped(f'/lustre/hurricanes/{tag}'),
         )
 
 
@@ -328,7 +335,7 @@ def flow_solve_rdhpcs(
 #        )
 
     # 7. COPY SOLUTION FROM S3 TO EFS
-    if rdhpcs_post:
+    if not rdhpcs_post:
         result_download_from_rdhpcs = shell_run_command(
             wait_for=[after_schism_on_rdhpcs],
             command=format_s3_download(

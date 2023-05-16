@@ -186,6 +186,7 @@ def end_to_end_flow(
                 year=year,
                 couple_wind=couple_wind,
                 ensemble=ensemble,
+                rdhpcs_post=rdhpcs_post,
                 tag=run_tag,
             ),
             return_state=True,

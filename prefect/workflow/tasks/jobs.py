@@ -1,6 +1,7 @@
 import subprocess
 import time
 import json
+import os
 from functools import partial
 
 import boto3
@@ -216,7 +217,9 @@ def format_mesh_slurm(storm_name, storm_year, kwds):
 
 
 @task(name='wait-slurm', description="Wait for slurm job")
-def task_wait_slurm_done(job_id):
+def task_wait_slurm_done(job_id, cwd):
+
+    os.chdir(cwd)
 
     logger = get_run_logger()
     logger.info(f"Waiting for job with ID: {job_id}")
