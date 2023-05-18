@@ -164,6 +164,7 @@
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
+          PREFECT_API_ENABLE_HTTP2: "False"
           AWS_DEFAULT_REGION: "{{ aws_default_region }}"
           # fixes aws-cli command output issue
           AWS_PAGER: ""
@@ -181,6 +182,7 @@
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
+          PREFECT_API_ENABLE_HTTP2: "False"
           AWS_ACCESS_KEY_ID: "{{ rdhpcs_s3_access_key_id }}"
           AWS_SECRET_ACCESS_KEY: "{{ rdhpcs_s3_secret_access_key }}"
           PW_API_KEY: "{{ pw_api_key }}"
@@ -197,6 +199,7 @@
         image: "{{ docker_image }}"
         container_default_behavior: "compatibility"
         env:
+          PREFECT_API_ENABLE_HTTP2: "False"
           AWS_DEFAULT_REGION: "{{ aws_default_region }}"
           # fixes aws-cli command output issue
           AWS_PAGER: ""
