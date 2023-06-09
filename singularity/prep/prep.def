@@ -1,0 +1,38 @@
+BootStrap: docker
+#From: centos:centos7.8.2003
+From: continuumio/miniconda3:23.3.1-0-alpine
+
+%files
+    environment.yml 
+    files/*.py /scripts/
+    files/refs /refs/
+
+%environment
+    export PYTHONPATH=/scripts
+
+%post
+    ENV_NAME=prep
+
+    apk update && apk upgrade && apk add git
+
+    conda install mamba -n base -c conda-forge 
+    mamba update --name base --channel defaults conda 
+    mamba env create -n $ENV_NAME --file /environment.yml
+    mamba clean --all --yes
+
+    conda run -n $ENV_NAME --no-capture-output \
+        pip install "pyschism>=0.1.12"
+    conda run -n $ENV_NAME --no-capture-output \
+        pip install "coupledmodeldriver>=1.6.3"
+    conda run -n $ENV_NAME --no-capture-output \
+        pip install "ensembleperturbation>=1.1.2"
+    
+    conda clean --all && apk del git
+    
+    
+%runscript
+    conda run -n prep --no-capture-output python -m $*
+
+
+%labels
+    Author "Soroosh Mani"
