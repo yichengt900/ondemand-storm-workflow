@@ -4,3 +4,4 @@ terraform.tfstate*
 vars_from_terraform
 __pycache__/
 ansible_collections/
+*.sif
