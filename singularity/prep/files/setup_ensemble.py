@@ -145,7 +145,9 @@ def main(args):
         quadrature=args.quadrature,
         start_date=perturb_begin,
         end_date=model_end_time,
-        overwrite=True
+        overwrite=True,
+        file_deck='b',
+        advisories=['BEST'],
     )
 
     if perturb_begin != model_start_time:
@@ -210,8 +212,9 @@ def parse_arguments():
 
     argument_parser.add_argument(
         '--output-directory',
-        default=None,
         required=True,
+        type=Path,
+        default=None,
         help='path to store generated configuration files'
     )
     argument_parser.add_argument(
@@ -240,6 +243,7 @@ def parse_arguments():
     )
     argument_parser.add_argument(
         '--mesh-directory',
+        type=Path,
         required=True,
         help='path to input mesh (`hgrid.gr3`, `manning.gr3` or `drag.gr3`)',
     )
