@@ -82,7 +82,6 @@ def main(args, clients):
 
     storm_name = str(args.name).lower()
     storm_year = str(args.year).lower()
-    out_dir =  args.out
 
     final_mesh_name = 'hgrid.gr3'
     write_mesh_box = False
@@ -91,15 +90,6 @@ def main(args, clients):
         final_mesh_name = 'final_mesh.2dm'
         write_mesh_box = True
 
-        args.rasters = [
-            i for i in (args.rasters_dir / 'gebco').iterdir() if i.suffix == '.tif'
-        ]
-
-
-        args.out = out_dir
-        args.fine_mesh = args.fine_mesh
-        args.coarse_mesh = args.coarse_mesh
-        args.region_of_interset = args.region_of_interset
     elif cmd == 'hurricane_mesh':
         final_mesh_name = 'mesh_no_bdry.2dm'
 
@@ -110,8 +100,8 @@ def main(args, clients):
 
     #TODO interpolate DEM?
     if write_mesh_box:
-        _write_mesh_box(out_dir, out_dir / final_mesh_name)
-    _generate_mesh_boundary_and_write(out_dir, out_dir / final_mesh_name)
+        _write_mesh_box(args.out, args.out / final_mesh_name)
+    _generate_mesh_boundary_and_write(args.out, args.out / final_mesh_name)
 
 
 class HurricaneMesher:
@@ -123,6 +113,11 @@ class HurricaneMesher:
     def __init__(self, sub_parser):
 
         this_parser = sub_parser.add_parser(self.script_name)
+
+        this_parser.add_argument(
+            "--lo-dem", nargs='+', help="Path to low resolution DEMS")
+        this_parser.add_argument(
+            "--hi-dem", nargs='+', help="Path to high resolution DEMS")
 
         this_parser.add_argument(
             "--nprocs", type=int, help="Number of parallel threads to use when "
@@ -195,7 +190,9 @@ class HurricaneMesher:
         storm_name = str(args.name).lower()
         storm_year = str(args.year).lower()
 
-        dem_dir = args.rasters_dir
+        lo_res_dems = args.lo_dem
+        hi_res_dems = args.hi_dem
+#        hi_tiles = args.hi_tiles
         shp_dir = args.shapes_dir
         hurr_info = args.windswath
         out_dir = args.out
@@ -203,10 +200,9 @@ class HurricaneMesher:
         coarse_geom = shp_dir / 'base_geom'
         fine_geom = shp_dir / 'high_geom'
 
-        gebco_paths = [i for i in (dem_dir / 'gebco').iterdir() if str(i).endswith('.tif')]
-        cudem_paths = [i for i in (dem_dir / 'ncei19').iterdir() if str(i).endswith('.tif')]
-        all_dem_paths = [*gebco_paths, *cudem_paths]
-        tile_idx_path = f'zip://{str(dem_dir)}/tileindex_NCEI_ninth_Topobathy_2014.zip'
+
+        all_dem_paths = [*lo_res_dems, *hi_res_dems]
+        lo_res_paths = lo_res_dems
 
         # Specs
         wind_kt = 34
@@ -261,7 +257,6 @@ class HurricaneMesher:
         logger.info("Reading input shapes...")
         gdf_fine = gpd.read_file(fine_geom)
         gdf_coarse = gpd.read_file(coarse_geom)
-        tile_idx = gpd.read_file(tile_idx_path)
 
         logger.info("Reading hurricane info...")
         gdf = gpd.read_file(hurr_info)
@@ -337,7 +332,6 @@ class HurricaneMesher:
             )
         gdf_dem_box = gdf_dem_box.reset_index()
 
-        lo_res_paths = gebco_paths
 
         # TODO: use sjoin instead?!
         gdf_hi_res_box = gdf_dem_box[gdf_dem_box.geometry.intersects(gdf_refine_super_2.unary_union)].reset_index()
@@ -423,7 +417,7 @@ class HurricaneMesher:
         # For interpolation after meshing and use GEBCO for mesh size calculation in refinement area.
         hfun_hi_rast_paths = hi_res_paths
         if len(hi_res_paths) > max_n_hires_dem:
-            hfun_hi_rast_paths = gebco_paths
+            hfun_hi_rast_paths = lo_res_paths
 
         logger.info("Create high-res size function...")
         hfun_hi = Hfun(
@@ -505,7 +499,7 @@ class HurricaneMesher:
 
         dst_crs = "EPSG:4326"
         interp_rast_list = [
-            *get_rasters(gebco_paths, dst_crs),
+            *get_rasters(lo_res_paths, dst_crs),
             *get_rasters(gdf_hi_res_box.path.values, dst_crs)]
 
         # TODO: Fix the deadlock issue with multiple cores when interpolating
@@ -533,8 +527,6 @@ if __name__ == '__main__':
         "name", help="name of the storm", type=str)
     parser.add_argument(
         "year", help="year of the storm", type=int)
-    parser.add_argument(
-        "--rasters-dir", help="top-level directory that contains rasters")
 
     subparsers = parser.add_subparsers(dest='cmd')
     subset_client = SubsetAndCombine(subparsers)
