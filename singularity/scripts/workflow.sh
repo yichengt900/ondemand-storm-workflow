@@ -56,6 +56,7 @@ if [ $subset_mesh == 1 ]; then
     KWDS+=" /lustre/grid/HSOFS_250m_v1.0_fixed.14"
     KWDS+=" /lustre/grid/WNAT_1km.14"
     KWDS+=" /lustre/hurricanes/${tag}/windswath"
+    KWDS+=" --rasters /lustre/dem/gebco/*.tif"
 else
     # TODO: Get param_* values from somewhere
     KWDS+="hurricane_mesh"
@@ -74,7 +75,7 @@ KWDS+=" --out /lustre/hurricanes/${tag}/mesh"
 export KWDS
 sbatch --wait --export=ALL,KWDS,STORM=$storm,YEAR=$year $SCRIPT_DIR/mesh.sbatch
 
-singularity run --bind /lustre $SCRIPT_DIR/info.sif setup_ensemble \
+singularity run --bind /lustre $SCRIPT_DIR/prep.sif setup_ensemble \
         --track-file $run_dir/nhc_track/hurricane-track.dat \
         --output-directory $run_dir/setup/ensemble.dir/ \
         --num-perturbations $num_perturb \
