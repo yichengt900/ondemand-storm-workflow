@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# TODO: Avoid hardcoding dirs
+# TODO: Make this an input
+subset_mesh=1
 storm=$1
 year=$2
 uuid=$(uuidgen)
@@ -43,64 +46,50 @@ singularity run --bind /lustre $SCRIPT_DIR/info.sif \
     --hours-before-landfall $hr_prelandfall \
     $storm $year
 
-exit 0
-
 # To redirect all the temp file creations in OCSMesh to luster file sys
-# TODO: Avoid hardcoding temporary dir
 export TMPDIR=/lustre/.tmp
 mkdir -p $TMPDIR
 
-# TODO: Add mesh from scratch option?
-# NOTE: Paths are hardcoded in the mesh Python script
-#param_storm_name, param_storm_year,
-#"--rasters-dir", 'dem',
-## If subsetting flag is False
-#_use_if(param_subset_mesh, False, "hurricane_mesh"),
-#_use_if(param_subset_mesh, False, "--hmax"),
-#_use_if(param_subset_mesh, False, param_mesh_hmax),
-#_use_if(param_subset_mesh, False, "--hmin-low"),
-#_use_if(param_subset_mesh, False, param_mesh_hmin_low),
-#_use_if(param_subset_mesh, False, "--rate-low"),
-#_use_if(param_subset_mesh, False, param_mesh_rate_low),
-#_use_if(param_subset_mesh, False, "--transition-elev"),
-#_use_if(param_subset_mesh, False, param_mesh_trans_elev),
-#_use_if(param_subset_mesh, False, "--hmin-high"),
-#_use_if(param_subset_mesh, False, param_mesh_hmin_high),
-#_use_if(param_subset_mesh, False, "--rate-high"),
-#_use_if(param_subset_mesh, False, param_mesh_rate_high),
-#_use_if(param_subset_mesh, False, "--shapes-dir"),
-#_use_if(param_subset_mesh, False, 'shape'),
-#_use_if(param_subset_mesh, False, "--windswath"),
-#_tag_n_use_if(
-#    param_subset_mesh, False, 'hurricanes/{tag}/windswath'
-#),
-## If subsetting flag is True
-#_use_if(param_subset_mesh, True, "subset_n_combine"),
-#_use_if(param_subset_mesh, True, 'grid/HSOFS_250m_v1.0_fixed.14'),
-#_use_if(param_subset_mesh, True, 'grid/WNAT_1km.14'),
-#_tag_n_use_if(
-#    param_subset_mesh, True, 'hurricanes/{tag}/windswath'
-#),
-## Other shared options
-#"--out", _tag('hurricanes/{tag}/mesh'),
-sbatch --wait \
-    --export=ALL,KWDS="--tag $tag subset_n_combine _1 _2 _3",STORM=$storm,YEAR=$year \
-    $SCRIPT_DIR/mesh.sbatch
+KWDS=""
+if [ $subset_mesh == 1 ]; then
+    KWDS+="subset_n_combine"
+    KWDS+=" /lustre/grid/HSOFS_250m_v1.0_fixed.14"
+    KWDS+=" /lustre/grid/WNAT_1km.14"
+    KWDS+=" /lustre/hurricanes/${tag}/windswath"
+else
+    # TODO: Get param_* values from somewhere
+    KWDS+="hurricane_mesh"
+    KWDS+=" --hmax $param_mesh_hmax"
+    KWDS+=" --hmin-low $param_mesh_hmin_low"
+    KWDS+=" --rate-low $param_mesh_rate_low"
+    KWDS+=" --transition-elev $param_mesh_trans_elev"
+    KWDS+=" --hmin-high $param_mesh_hmin_high"
+    KWDS+=" --rate-high $param_mesh_rate_high"
+    KWDS+=" --shapes-dir /lustre/shape"
+    KWDS+=" --windswath hurricanes/${tag}/windswath"
+    KWDS+=" --lo-dem /lustre/dem/gebco/*.tif"
+    KWDS+=" --hi-dem /lustre/dem/ncei19/*.tif"
+fi
+KWDS+=" --out /lustre/hurricanes/${tag}/mesh"
+export KWDS
+sbatch --wait --export=ALL,KWDS,STORM=$storm,YEAR=$year $SCRIPT_DIR/mesh.sbatch
 
-singularity run --bind /lustre $SCRIPT_DIR/info.sif setup_ensemble.py \
-            --track-file $run_dir/nhc_track/hurricane-track.dat \
-            --output-directory $run_dir/setup/ensemble.dir/ \
-            --num-perturbations $num_perturb \
-            --mesh-directory $run_dir/mesh/ \
-            --sample-from-distribution \
-            --sample-rule $sample_rule \
-            --hours-before-landfall $hr_prelandfall \
-            --nwm-file /lustre/nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb \
-            --date-range-file $run_dir/setup/dates.csv \
-            --tpxo-dir /lustre/tpxo \
-            $storm $year
+singularity run --bind /lustre $SCRIPT_DIR/info.sif setup_ensemble \
+        --track-file $run_dir/nhc_track/hurricane-track.dat \
+        --output-directory $run_dir/setup/ensemble.dir/ \
+        --num-perturbations $num_perturb \
+        --mesh-directory $run_dir/mesh/ \
+        --sample-from-distribution \
+        --sample-rule $sample_rule \
+        --hours-before-landfall $hr_prelandfall \
+        --nwm-file /lustre/nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb \
+        --date-range-file $run_dir/setup/dates.csv \
+        --tpxo-dir /lustre/tpxo \
+        $storm $year
 #            _use_if(param_wind_coupling, True, "--use-wwm"),
 
+
+exit 0
 
 spinup_id=$(sbatch --parsable --export=ALL,STORM_PATH="$run_dir/setup/ensemble.dir/spinup",SCHISM_EXEC="$spinup_exec" $SCRIPT_DIR/schism.sbatch)
 
