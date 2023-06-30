@@ -77,9 +77,5 @@ From: ubuntu:22.10
 #    rm -rf /var/lib/{apt,dpkg,cache,log}/
     
     
-%runscript
-    /scripts/entrypoint.sh
-
-
 %labels
     Author "Soroosh Mani"
