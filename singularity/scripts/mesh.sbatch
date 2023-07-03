@@ -3,4 +3,4 @@
 #SBATCH --exclusive
 #SBATCH --mem=0
 
-singularity run --bind /lustre ${SCRIPT_DIR}/ocsmesh.sif ${STORM} ${YEAR} ${KWDS} 
+singularity run ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/ocsmesh.sif ${STORM} ${YEAR} ${KWDS} 
