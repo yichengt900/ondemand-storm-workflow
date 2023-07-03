@@ -100,7 +100,7 @@ singularity run --bind /lustre $SCRIPT_DIR/prep.sif setup_ensemble \
 #            _use_if(param_wind_coupling, True, "--use-wwm"),
 
 
-echo "Running spinup..."
+echo "Launching runs"
 spinup_id=$(sbatch --parsable --export=ALL,STORM_PATH="$run_dir/setup/ensemble.dir/spinup",SCHISM_EXEC="$spinup_exec" $SCRIPT_DIR/schism.sbatch)
 
 joblist=""
@@ -112,6 +112,10 @@ for i in $run_dir/setup/ensemble.dir/runs/*; do
         )
     joblist+=":$jobid"
 done
-echo "Wait for ${joblist}"
-srun -d afterok${joblist} --pty sleep 1
-# TODO: Now post processing!
+#echo "Wait for ${joblist}"
+#srun -d afterok${joblist} --pty sleep 1
+
+# Post processing
+sbatch --parsable -d afterok${joblist} \
+    --export=ALL,ENSEMBLE_DIR="$run_dir/setup/ensemble.dir/" \
+    $SCRIPT_DIR/post.sbatch
