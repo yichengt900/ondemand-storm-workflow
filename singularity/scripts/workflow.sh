@@ -25,7 +25,7 @@ SHP_DIR=/lustre/shape
 
 # ENVS
 export SINGULARITY_BINDFLAGS="--bind /lustre"
-export SCRIPT_DIR=./scripts
+export SCRIPT_DIR=`realpath ./scripts`
 export TMPDIR=/lustre/.tmp  # redirect OCSMESH temp files
 export PATH=$SCRIPT_DIR:$PATH
 
