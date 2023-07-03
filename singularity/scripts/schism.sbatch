@@ -14,7 +14,7 @@ set -ex
 
 pushd ${STORM_PATH}
 mkdir -p outputs
-mpirun --ppn ${SLURM_TASKS_PER_NODE} singularity exec --bind /lustre ${SCRIPT_DIR}/solve.sif ${SCHISM_EXEC} 4
+mpirun -np 36 singularity exec ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/solve.sif ${SCHISM_EXEC} 4
 
 if [ $? -eq 0 ]; then
     echo "Combining outputs..."
@@ -23,7 +23,7 @@ if [ $? -eq 0 ]; then
     if ls hotstart* >/dev/null 2>&1; then 
         times=$(ls hotstart_* | grep -o "hotstart[0-9_]\+" | awk 'BEGIN {FS = "_"}; {print $3}'  | sort -h | uniq )
         for i in $times; do
-           singularity exec --bind /lustre ${SCRIPT_DIR}/solve.sif combine_hotstart7 --iteration $i
+           singularity exec ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/solve.sif combine_hotstart7 --iteration $i
         done
     fi
     popd
