@@ -346,8 +346,8 @@ def analyze(tracks_dir, analyze_dir):
 if __name__ == '__main__':
 
     parser = ArgumentParser()
-    parser.add_argument('-d', '--ensemble-dir')
-    parser.add_argument('-t', '--tracks-dir')
+    parser.add_argument('-d', '--ensemble-dir', type=Path)
+    parser.add_argument('-t', '--tracks-dir', type=Path)
     parser.add_argument('-s', '--sequential', action='store_true')
 
     main(parser.parse_args())
