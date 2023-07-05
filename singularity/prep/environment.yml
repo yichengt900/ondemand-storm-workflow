@@ -13,6 +13,7 @@ dependencies:
   - cfunits
   - cf-python
   - cfgrib
+  - cmocean
   - esmf
   - esmpy
   - cfdm
