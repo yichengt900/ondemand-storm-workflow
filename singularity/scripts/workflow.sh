@@ -50,7 +50,7 @@ run_dir=$(init $tag)
 echo $run_dir
 
 # TODO: Make past-forecast an option
-singularity run {SINGULARITY_BINDFLAGS} $IMG_DIR/info.sif \
+singularity run $SINGULARITY_BINDFLAGS $IMG_DIR/info.sif \
     --date-range-outpath $run_dir/setup/dates.csv \
     --track-outpath $run_dir/nhc_track/hurricane-track.dat \
     --swath-outpath $run_dir/windswath \
@@ -87,7 +87,7 @@ sbatch --wait --export=ALL,IMG=$IMG_DIR/ocsmesh.sif $SCRIPT_DIR/mesh.sbatch
 
 
 echo "Download necessary data..."
-singularity run {SINGULARITY_BINDFLAGS} $IMG_DIR/prep.sif download_data \
+singularity run $SINGULARITY_BINDFLAGS $IMG_DIR/prep.sif download_data \
     --output-directory $run_dir/setup/ensemble.dir/ \
     --mesh-directory $run_dir/mesh/ \
     --date-range-file $run_dir/setup/dates.csv \
