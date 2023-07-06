@@ -5,4 +5,4 @@
 
 set -ex
 
-singularity run ${SINGULARITY_BINDFLAGS} ${IMG} ${storm} ${year} ${PREP_KWDS} 
+singularity run ${SINGULARITY_BINDFLAGS} ${IMG} ${STORM} ${YEAR} ${PREP_KWDS} 
