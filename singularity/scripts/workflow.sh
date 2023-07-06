@@ -109,7 +109,9 @@ PREP_KWDS+=" --nwm-file $L_NWM_DATASET"
 PREP_KWDS+=" --tpxo-dir $L_TPXO_DATASET"
 # _use_if(param_wind_coupling, True, "--use-wwm"),
 export PREP_KWDS
+# NOTE: We need to wait because run jobs depend on perturbation dirs!
 setup_id=$(sbatch \
+    --wait \
     --parsable \
     --export=ALL,PREP_KWDS,STORM=$storm,YEAR=$year,IMG="$L_IMG_DIR/prep.sif" \
     $L_SCRIPT_DIR/prep.sbatch \
