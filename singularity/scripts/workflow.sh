@@ -15,20 +15,20 @@ spinup_exec='pschism_PAHM_TVD-VL'
 hotstart_exec='pschism_PAHM_TVD-VL'
 
 # PATHS
-NWM_DATASET=/lustre/nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb
-TPXO_DATASET=/lustre/tpxo
-DEM_HI=/lustre/dem/ncei19/*.tif
-DEM_LO=/lustre/dem/gebco/*.tif
-MESH_HI=/lustre/grid/HSOFS_250m_v1.0_fixed.14
-MESH_LO=/lustre/grid/WNAT_1km.14
-SHP_DIR=/lustre/shape
+L_NWM_DATASET=/lustre/nwm/NWM_v2.0_channel_hydrofabric/nwm_v2_0_hydrofabric.gdb
+L_TPXO_DATASET=/lustre/tpxo
+L_DEM_HI=/lustre/dem/ncei19/*.tif
+L_DEM_LO=/lustre/dem/gebco/*.tif
+L_MESH_HI=/lustre/grid/HSOFS_250m_v1.0_fixed.14
+L_MESH_LO=/lustre/grid/WNAT_1km.14
+L_SHP_DIR=/lustre/shape
+L_IMG_DIR=`realpath ./scripts`
+L_SCRIPT_DIR=`realpath ./scripts`
 
 # ENVS
 export SINGULARITY_BINDFLAGS="--bind /lustre"
-export IMG_DIR=`realpath ./scripts`
-export SCRIPT_DIR=`realpath ./scripts`
 export TMPDIR=/lustre/.tmp  # redirect OCSMESH temp files
-export PATH=$SCRIPT_DIR:$PATH
+export PATH=$L_SCRIPT_DIR:$PATH
 
 # Processing...
 mkdir -p $TMPDIR
@@ -50,7 +50,7 @@ run_dir=$(init $tag)
 echo $run_dir
 
 # TODO: Make past-forecast an option
-singularity run $SINGULARITY_BINDFLAGS $IMG_DIR/info.sif \
+singularity run $SINGULARITY_BINDFLAGS $L_IMG_DIR/info.sif \
     --date-range-outpath $run_dir/setup/dates.csv \
     --track-outpath $run_dir/nhc_track/hurricane-track.dat \
     --swath-outpath $run_dir/windswath \
@@ -64,10 +64,10 @@ singularity run $SINGULARITY_BINDFLAGS $IMG_DIR/info.sif \
 MESH_KWDS=""
 if [ $subset_mesh == 1 ]; then
     MESH_KWDS+="subset_n_combine"
-    MESH_KWDS+=" $MESH_HI"
-    MESH_KWDS+=" $MESH_LO"
+    MESH_KWDS+=" $L_MESH_HI"
+    MESH_KWDS+=" $L_MESH_LO"
     MESH_KWDS+=" ${run_dir}/windswath"
-    MESH_KWDS+=" --rasters $DEM_LO"
+    MESH_KWDS+=" --rasters $L_DEM_LO"
 else
     # TODO: Get param_* values from somewhere
     MESH_KWDS+="hurricane_mesh"
@@ -77,21 +77,22 @@ else
     MESH_KWDS+=" --transition-elev $param_mesh_trans_elev"
     MESH_KWDS+=" --hmin-high $param_mesh_hmin_high"
     MESH_KWDS+=" --rate-high $param_mesh_rate_high"
-    MESH_KWDS+=" --shapes-dir $SHP_DIR"
+    MESH_KWDS+=" --shapes-dir $L_SHP_DIR"
     MESH_KWDS+=" --windswath ${run_dir}/windswath"
-    MESH_KWDS+=" --lo-dem $DEM_LO"
-    MESH_KWDS+=" --hi-dem $DEM_HI"
+    MESH_KWDS+=" --lo-dem $L_DEM_LO"
+    MESH_KWDS+=" --hi-dem $L_DEM_HI"
 fi
 MESH_KWDS+=" --out ${run_dir}/mesh"
-sbatch --wait --export=ALL,IMG=$IMG_DIR/ocsmesh.sif $SCRIPT_DIR/mesh.sbatch
+export MESH_KWDS
+sbatch --wait --export=ALL,MESH_KWDS,STORM=$storm,YEAR=$year,IMG=$L_IMG_DIR/ocsmesh.sif $L_SCRIPT_DIR/mesh.sbatch
 
 
 echo "Download necessary data..."
-singularity run $SINGULARITY_BINDFLAGS $IMG_DIR/prep.sif download_data \
+singularity run $SINGULARITY_BINDFLAGS $L_IMG_DIR/prep.sif download_data \
     --output-directory $run_dir/setup/ensemble.dir/ \
     --mesh-directory $run_dir/mesh/ \
     --date-range-file $run_dir/setup/dates.csv \
-    --nwm-file $NWM_DATASET
+    --nwm-file $L_NWM_DATASET
 
 
 echo "Setting up the model..."
@@ -104,13 +105,14 @@ PREP_KWDS+="--sample-from-distribution"
 PREP_KWDS+="--sample-rule $sample_rule"
 PREP_KWDS+="--hours-before-landfall $hr_prelandfall"
 PREP_KWDS+="--date-range-file $run_dir/setup/dates.csv"
-PREP_KWDS+="--nwm-file $NWM_DATASET"
-PREP_KWDS+="--tpxo-dir $TPXO_DATASET"
+PREP_KWDS+="--nwm-file $L_NWM_DATASET"
+PREP_KWDS+="--tpxo-dir $L_TPXO_DATASET"
+export PREP_KWDS
 # _use_if(param_wind_coupling, True, "--use-wwm"),
 setup_id=$(sbatch \
     --parsable \
-    --export=ALL,IMG="$IMG_DIR/prep.sif" \
-    $SCRIPT_DIR/prep.sbatch \
+    --export=ALL,PREP_KWDS,STORM=$storm,YEAR=$year,IMG="$L_IMG_DIR/prep.sif" \
+    $L_SCRIPT_DIR/prep.sbatch \
 )
 
 
@@ -118,16 +120,16 @@ echo "Launching runs"
 spinup_id=$(sbatch \
     --parsable \
     -d afterok:$setup_id \
-    --export=ALL,IMG="$IMG_DIR/solve.sif",SCHISM_DIR="$run_dir/setup/ensemble.dir/spinup",SCHISM_EXEC="$spinup_exec" \
-    $SCRIPT_DIR/schism.sbatch
+    --export=ALL,IMG="$L_IMG_DIR/solve.sif",SCHISM_DIR="$run_dir/setup/ensemble.dir/spinup",SCHISM_EXEC="$spinup_exec" \
+    $L_SCRIPT_DIR/schism.sbatch
 )
 
 joblist=""
 for i in $run_dir/setup/ensemble.dir/runs/*; do
     jobid=$(
         sbatch --parsable -d afterok:$spinup_id \
-        --export=ALL,IMG="$IMG_DIR/solve.sif",SCHISM_DIR="$i",SCHISM_EXEC="$hotstart_exec" \
-        $SCRIPT_DIR/schism.sbatch
+        --export=ALL,IMG="$L_IMG_DIR/solve.sif",SCHISM_DIR="$i",SCHISM_EXEC="$hotstart_exec" \
+        $L_SCRIPT_DIR/schism.sbatch
         )
     joblist+=":$jobid"
 done
@@ -138,5 +140,5 @@ done
 sbatch \
     --parsable \
     -d afterok${joblist} \
-    --export=ALL,IMG="$IMG_DIR/prep.sif",ENSEMBLE_DIR="$run_dir/setup/ensemble.dir/" \
-    $SCRIPT_DIR/post.sbatch
+    --export=ALL,IMG="$L_IMG_DIR/prep.sif",ENSEMBLE_DIR="$run_dir/setup/ensemble.dir/" \
+    $L_SCRIPT_DIR/post.sbatch
