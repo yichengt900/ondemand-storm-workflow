@@ -31,9 +31,9 @@ if [ $? -eq 0 ]; then
     popd
 
     singularity exec ${SINGULARITY_BINDFLAGS} ${IMG} \
-        expect -f combine_gr3.exp maxelev 1
+        expect -f /scripts/combine_gr3.exp maxelev 1
     singularity exec ${SINGULARITY_BINDFLAGS} ${IMG} \
-        expect -f combine_gr3.exp maxdahv 3
+        expect -f /scripts/combine_gr3.exp maxdahv 3
     mv maxdahv.gr3 maxelev.gr3 -t outputs
 fi
 
