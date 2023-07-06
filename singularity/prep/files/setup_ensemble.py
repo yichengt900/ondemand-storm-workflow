@@ -56,23 +56,6 @@ def main(args):
     model_end_time = datetime.strptime(date_2, "%Y%m%d%H")
     spinup_time = timedelta(days=2)
 
-    # More processing for caching
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # NOTE: The output of write is not important. Calling
-        # `write` results in the relevant files being cached!
-        nwm = NWM(nwm_file=nwm_file, cache=True)
-        nwm.write(
-            output_directory=tmpdir,
-            gr3=Hgrid.open(mesh_file, crs=4326),
-            start_date=model_start_time - spinup_time,
-            end_date=model_end_time - model_start_time + spinup_time,
-            overwrite=True,
-            )
-        nwm.pairings.save_json(
-            sources=workdir / 'source.json',
-            sinks=workdir / 'sink.json'
-        )
-
     forcing_configurations = []
     forcing_configurations.append(TidalForcingJSON(
             resource=tpxo_dir / 'h_tpxo9.v1.nc',

@@ -5,4 +5,4 @@
 
 set -ex
 
-singularity run ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/ocsmesh.sif ${STORM} ${YEAR} ${KWDS} 
+singularity run ${SINGULARITY_BINDFLAGS} ${IMG} ${storm} ${year} ${MESH_KWDS} 
