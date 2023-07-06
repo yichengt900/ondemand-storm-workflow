@@ -96,19 +96,19 @@ singularity run $SINGULARITY_BINDFLAGS $L_IMG_DIR/prep.sif download_data \
 
 
 echo "Setting up the model..."
-PREP_KWDS=""
-PREP_KWDS+="--track-file $run_dir/nhc_track/hurricane-track.dat"
-PREP_KWDS+="--output-directory $run_dir/setup/ensemble.dir/"
-PREP_KWDS+="--num-perturbations $num_perturb"
-PREP_KWDS+="--mesh-directory $run_dir/mesh/"
-PREP_KWDS+="--sample-from-distribution"
-PREP_KWDS+="--sample-rule $sample_rule"
-PREP_KWDS+="--hours-before-landfall $hr_prelandfall"
-PREP_KWDS+="--date-range-file $run_dir/setup/dates.csv"
-PREP_KWDS+="--nwm-file $L_NWM_DATASET"
-PREP_KWDS+="--tpxo-dir $L_TPXO_DATASET"
-export PREP_KWDS
+PREP_KWDS="setup_ensemble"
+PREP_KWDS+=" --track-file $run_dir/nhc_track/hurricane-track.dat"
+PREP_KWDS+=" --output-directory $run_dir/setup/ensemble.dir/"
+PREP_KWDS+=" --num-perturbations $num_perturb"
+PREP_KWDS+=" --mesh-directory $run_dir/mesh/"
+PREP_KWDS+=" --sample-from-distribution"
+PREP_KWDS+=" --sample-rule $sample_rule"
+PREP_KWDS+=" --hours-before-landfall $hr_prelandfall"
+PREP_KWDS+=" --date-range-file $run_dir/setup/dates.csv"
+PREP_KWDS+=" --nwm-file $L_NWM_DATASET"
+PREP_KWDS+=" --tpxo-dir $L_TPXO_DATASET"
 # _use_if(param_wind_coupling, True, "--use-wwm"),
+export PREP_KWDS
 setup_id=$(sbatch \
     --parsable \
     --export=ALL,PREP_KWDS,STORM=$storm,YEAR=$year,IMG="$L_IMG_DIR/prep.sif" \
