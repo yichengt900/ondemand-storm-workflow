@@ -12,9 +12,9 @@ ulimit -s unlimited
 
 set -ex
 
-pushd ${STORM_PATH}
+pushd ${SCHISM_DIR}
 mkdir -p outputs
-mpirun -np 36 singularity exec ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/solve.sif \
+mpirun -np 36 singularity exec ${SINGULARITY_BINDFLAGS} ${IMG} \
     ${SCHISM_EXEC} 4
 
 if [ $? -eq 0 ]; then
@@ -24,15 +24,15 @@ if [ $? -eq 0 ]; then
     if ls hotstart* >/dev/null 2>&1; then 
         times=$(ls hotstart_* | grep -o "hotstart[0-9_]\+" | awk 'BEGIN {FS = "_"}; {print $3}'  | sort -h | uniq )
         for i in $times; do
-           singularity exec ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/solve.sif \
+           singularity exec ${SINGULARITY_BINDFLAGS} ${IMG} \
                combine_hotstart7 --iteration $i
         done
     fi
     popd
 
-    singularity exec ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/solve.sif \
+    singularity exec ${SINGULARITY_BINDFLAGS} ${IMG} \
         expect -f ${SCRIPT_DIR}/combine_gr3.exp maxelev 1
-    singularity exec ${SINGULARITY_BINDFLAGS} ${SCRIPT_DIR}/solve.sif \
+    singularity exec ${SINGULARITY_BINDFLAGS} ${IMG} \
         expect -f ${SCRIPT_DIR}/combine_gr3.exp maxdahv 3
     mv maxdahv.gr3 maxelev.gr3 -t outputs
 fi
