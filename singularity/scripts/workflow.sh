@@ -2,7 +2,10 @@
 set -e
 
 # User inputs...
-source inputs.sh
+THIS_SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source $THIS_SCRIPT_DIR/input.sh
+
+# PATH
 export PATH=$L_SCRIPT_DIR:$PATH
 
 # Processing...
