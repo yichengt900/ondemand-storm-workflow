@@ -24,3 +24,6 @@ L_SCRIPT_DIR=`realpath ./scripts`
 # Environment
 export SINGULARITY_BINDFLAGS="--bind /lustre"
 export TMPDIR=/lustre/.tmp  # redirect OCSMESH temp files
+
+# Modules
+L_SOLVE_MODULES="openmpi/4.1.2"

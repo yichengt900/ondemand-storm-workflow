@@ -5,7 +5,7 @@
 #SBATCH --nodes=3
 #SBATCH --ntasks-per-node=36
 
-module load openmpi/4.1.2
+module load $MODULES
 
 export MV2_ENABLE_AFFINITY=0
 ulimit -s unlimited
