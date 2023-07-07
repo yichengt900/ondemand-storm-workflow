@@ -97,10 +97,14 @@ setup_id=$(sbatch \
 
 
 echo "Launching runs"
+SCHISM_SHARED_ENV=""
+SCHISM_SHARED_ENV+="ALL"
+SCHISM_SHARED_ENV+=",IMG=$L_IMG_DIR/solve.sif"
+SCHISM_SHARED_ENV+=",MODULES=$L_SOLVE_MODULES"
 spinup_id=$(sbatch \
     --parsable \
     -d afterok:$setup_id \
-    --export=ALL,IMG="$L_IMG_DIR/solve.sif",SCHISM_DIR="$run_dir/setup/ensemble.dir/spinup",SCHISM_EXEC="$spinup_exec" \
+    --export=$SCHISM_SHARED_ENV,SCHISM_DIR="$run_dir/setup/ensemble.dir/spinup",SCHISM_EXEC="$spinup_exec" \
     $L_SCRIPT_DIR/schism.sbatch
 )
 
@@ -108,7 +112,7 @@ joblist=""
 for i in $run_dir/setup/ensemble.dir/runs/*; do
     jobid=$(
         sbatch --parsable -d afterok:$spinup_id \
-        --export=ALL,IMG="$L_IMG_DIR/solve.sif",SCHISM_DIR="$i",SCHISM_EXEC="$hotstart_exec" \
+        --export=$SCHISM_SHARED_ENV,SCHISM_DIR="$i",SCHISM_EXEC="$hotstart_exec" \
         $L_SCRIPT_DIR/schism.sbatch
         )
     joblist+=":$jobid"
