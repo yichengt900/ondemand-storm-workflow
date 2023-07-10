@@ -3,7 +3,7 @@ set -e
 
 # User inputs...
 THIS_SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source $THIS_SCRIPT_DIR/input.sh
+source $THIS_SCRIPT_DIR/input.conf
 
 # PATH
 export PATH=$L_SCRIPT_DIR:$PATH
