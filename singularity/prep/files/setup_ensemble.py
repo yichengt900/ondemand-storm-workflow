@@ -41,7 +41,6 @@ def main(args):
     tpxo_dir = args.tpxo_dir
     nwm_file = args.nwm_file
     mesh_dir = args.mesh_directory
-    hr_prelandfall = args.hours_before_landfall
     use_wwm = args.use_wwm
 
     workdir = out_dir
@@ -50,10 +49,11 @@ def main(args):
     workdir.mkdir(exist_ok=True)
 
     dt_data = pd.read_csv(dt_rng_path, delimiter=',')
-    date_1, date_2 = pd.to_datetime(dt_data.date_time).dt.strftime(
+    date_1, date_2, date_3 = pd.to_datetime(dt_data.date_time).dt.strftime(
             "%Y%m%d%H").values
     model_start_time = datetime.strptime(date_1, "%Y%m%d%H")
     model_end_time = datetime.strptime(date_2, "%Y%m%d%H")
+    perturb_start = datetime.strptime(date_3, "%Y%m%d%H")
     spinup_time = timedelta(days=2)
 
     forcing_configurations = []
@@ -80,43 +80,38 @@ def main(args):
 
     platform = Platform.LOCAL
 
-    perturb_begin = model_start_time
-    unpertubed = None
-    if hr_prelandfall is not None and hr_prelandfall >= 0:
-        # Calculate time to landfall based on track and coastline
-        # and then perturb ONLY from the requested hours before landfall
-        countries = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-        usa = countries[countries.name.isin(
-            ["United States of America", "Puerto Rico"]
-        )]
+    unperturbed = None
+    # NOTE: Assuming the track file only contains a single advisory
+    # track (either a OFCL or BEST)
+    orig_track = VortexTrack.from_file(track_path)
+    adv_uniq = orig_track.data.advisory.unique()
+    if len(adv_uniq) != 1:
+        raise ValueError("Track file has multiple advisory types!")
 
-        orig_track = VortexTrack.from_file(track_path)
-        track_dat = orig_track.data
-        onland = track_dat.geometry.set_crs(4326).intersects(usa.unary_union)
-        if onland.any():
-            landfall_idx = onland[onland].index.min()
-        else:
-            logger.warn("The track doesn't cross US territories!")
-            landfall_idx = 0
-        landfall_time = pd.Timestamp(
-            track_dat.iloc[landfall_idx].datetime
+    advisory = adv_uniq.item()
+    file_deck = 'a' if advisory != 'BEST' else 'b'
+
+
+    # NOTE: Perturbers use min("forecast_time") to filter multiple
+    # tracks. But for OFCL forecast simulation, the track file we
+    # get has unique forecast time for only the segment we want to
+    # perturb, the preceeding entries are 0-hour forecasts from
+    # previous forecast_times
+    track_to_perturb = VortexTrack.from_file(
+            track_path,
+            start_date=perturb_start,
+            forecast_time=perturb_start,
+            end_date=model_end_time,
+            file_deck=file_deck,
+            advisories=[advisory],
         )
-        toi = landfall_time - timedelta(hours=hr_prelandfall)
-        perturb_idx = (track_dat.datetime - toi).abs().argsort().iloc[0]
-
-        if perturb_idx > 0:
-            # If only part of the track needs to be updated
-            unpertubed = deepcopy(orig_track)
-            unpertubed.end_date = track_dat.iloc[perturb_idx - 1].datetime
-
-            # NOTE: Perturbation dataframe is truncated based on the
-            # passed `perturb_begin` to `perturb_tracks(...)`
-            perturb_begin = track_dat.iloc[perturb_idx].datetime
-
+    track_to_perturb.to_file(
+        workdir/'track_to_perturb.dat', overwrite=True
+    )
     perturbations = perturb_tracks(
         perturbations=args.num_perturbations,
         directory=workdir/'track_files',
-        storm=track_path,
+        storm=workdir/'track_to_perturb.dat',
         variables=[
             'cross_track',
             'along_track',
@@ -126,27 +121,51 @@ def main(args):
         sample_from_distribution=args.sample_from_distribution,
         sample_rule=args.sample_rule,
         quadrature=args.quadrature,
-        start_date=perturb_begin,
+        start_date=perturb_start,
         end_date=model_end_time,
         overwrite=True,
-        file_deck='b',
-        advisories=['BEST'],
+        file_deck=file_deck,
+        advisories=[advisory],
     )
 
-    if perturb_begin != model_start_time:
-        # Read generated tracks and append to unpertubed section
-        perturbed_tracks = glob.glob(str(workdir/'track_files'/'*.22'))
-        for pt in perturbed_tracks:
-            if 'original' in pt:
-                continue
-#            perturbed_segment = pd.read_csv(pt, header=None)
-            perturbed_segment = VortexTrack.from_file(pt)
-            full_track = pd.concat(
-                (unpertubed.fort_22(), perturbed_segment.fort_22()),
-                ignore_index=True
+    if perturb_start != model_start_time:
+        perturb_idx = orig_track.data[
+            orig_track.data.datetime == perturb_start
+        ].index.min()
+
+        if perturb_idx > 0:
+            # If only part of the track needs to be updated
+            unperturbed_data = deepcopy(orig_track).data
+            unperturbed_data.advisory = 'BEST'
+            unperturbed_data.forecast_hours = 0
+            unperturbed = VortexTrack(
+                unperturbed_data,
+                file_deck='b',
+                advisories = ['BEST'],
+                end_date=orig_track.data.iloc[perturb_idx - 1].datetime
             )
-            # Overwrites the perturbed-segment-only file
-            full_track.to_csv(pt, index=False, header=False)
+
+            # Read generated tracks and append to unpertubed section
+
+            perturbed_tracks = glob.glob(str(workdir/'track_files'/'*.22'))
+            for pt in perturbed_tracks:
+                if 'original' in pt:
+                    continue
+                # Fake BEST track here (in case it's not a real best)!
+                perturbed_data = VortexTrack.from_file(pt).data
+                perturbed_data.advisory = 'BEST'
+                perturbed_data.forecast_hours = 0
+                perturbed = VortexTrack(
+                    perturbed_data,
+                    file_deck='b',
+                    advisories = ['BEST'],
+                )
+                full_track = pd.concat(
+                    (unperturbed.fort_22(), perturbed.fort_22()),
+                    ignore_index=True
+                )
+                # Overwrites the perturbed-segment-only file
+                full_track.to_csv(pt, index=False, header=False)
 
 
     run_config_kwargs = {
@@ -238,9 +257,6 @@ def parse_arguments():
     )
     argument_parser.add_argument(
         "--quadrature", action="store_true"
-    )
-    argument_parser.add_argument(
-        "-b", "--hours-before-landfall", type=int
     )
     argument_parser.add_argument(
         "--use-wwm", action="store_true"
