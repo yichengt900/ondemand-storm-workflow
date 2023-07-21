@@ -149,8 +149,6 @@ def main(args):
 
             perturbed_tracks = glob.glob(str(workdir/'track_files'/'*.22'))
             for pt in perturbed_tracks:
-                if 'original' in pt:
-                    continue
                 # Fake BEST track here (in case it's not a real best)!
                 perturbed_data = VortexTrack.from_file(pt).data
                 perturbed_data.advisory = 'BEST'
