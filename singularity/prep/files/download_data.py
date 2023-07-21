@@ -26,7 +26,7 @@ def main(args):
     workdir.mkdir(exist_ok=True)
 
     dt_data = pd.read_csv(dt_rng_path, delimiter=',')
-    date_1, date_2 = pd.to_datetime(dt_data.date_time).dt.strftime(
+    date_1, date_2, _ = pd.to_datetime(dt_data.date_time).dt.strftime(
             "%Y%m%d%H").values
     model_start_time = datetime.strptime(date_1, "%Y%m%d%H")
     model_end_time = datetime.strptime(date_2, "%Y%m%d%H")

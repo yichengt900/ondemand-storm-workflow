@@ -60,6 +60,7 @@ def main(args):
 
     # TODO: Get user input for whether its forecast or now!
     now = datetime.now()
+    df_dt = pd.DataFrame(columns=['date_time'])
     if (is_past_forecast or (now - event.start_date < timedelta(days=30))):
         temp_track = event.track(file_deck='a')
         adv_avail = temp_track.unfiltered_data.advisory.unique()
@@ -79,7 +80,6 @@ def main(args):
         # See GitHub issue #57 for StormEvents
         track = VortexTrack(nhc_code, file_deck='a', advisories=[advisory])
 
-        df_dt = pd.DataFrame(columns=['date_time'])
 
         if is_past_forecast:
 
@@ -90,20 +90,22 @@ def main(args):
             onland_adv_tracks = track.data[track.data.intersects(shp_US)]
             candidates = onland_adv_tracks.groupby('track_start_time').nth(0).reset_index()
             candidates['timediff'] = candidates.datetime - candidates.track_start_time
-            track_start = candidates[
+            forecast_start = candidates[
                 candidates['timediff'] >= timedelta(hours=hr_before_landfall)
             ].track_start_time.iloc[-1]
 
-            gdf_track = track.data[track.data.track_start_time == track_start]
+            gdf_track = track.data[track.data.track_start_time == forecast_start]
             # Append before track from previous forecasts:
             gdf_track = pd.concat((
                 track.data[
-                    (track.data.track_start_time < track_start)
+                    (track.data.track_start_time < forecast_start)
                     & (track.data.forecast_hours == 0)
                 ],
                 gdf_track
             ))
-            df_dt['date_time'] = (track.start_date, track.end_date)
+            df_dt['date_time'] = (
+                track.start_date, track.end_date, forecast_start
+            )
 
 
             logger.info("Fetching water level measurements from COOPS stations...")
@@ -116,23 +118,35 @@ def main(args):
 
         else:
             # Get the latest track forecast
-            track_start = track.data.track_start_time.max()
-            gdf_track = track.data[track.data.track_start_time == track_start]
+            forecast_start = track.data.track_start_time.max()
+            gdf_track = track.data[track.data.track_start_time == forecast_start]
+            gdf_track = pd.concat((
+                track.data[
+                    (track.data.track_start_time < forecast_start)
+                    & (track.data.forecast_hours == 0)
+                ],
+                gdf_track
+            ))
 
             # Put both dates as now(), for pyschism to setup forecast
-            df_dt['date_time'] = (now, now)
+            df_dt['date_time'] = (
+                track.start_date, track.end_date, forecast_start
+            )
 
             coops_ssh = None
 
         # NOTE: Fake besttrack: Since PySCHISM supports "BEST" track
         # files for its parametric forcing, write track as "BEST" after
         # fixing the OFCL by CARQ through StormEvents
-        gdf_track.advisory = 'BEST'
-        gdf_track.forecast_hours = 0
-        track = VortexTrack(storm=gdf_track, file_deck='b', advisories=['BEST'])
+        # NOTE: Fake best track AFTER perturbation
+#        gdf_track.advisory = 'BEST'
+#        gdf_track.forecast_hours = 0
+        track = VortexTrack(storm=gdf_track, file_deck='a', advisories=[advisory])
 
         windswath_dict = track.wind_swaths(wind_speed=34)
-        windswaths = windswath_dict['BEST']  # Faked BEST
+        # NOTE: Fake best track AFTER perturbation
+#        windswaths = windswath_dict['BEST']  # Faked BEST
+        windswaths = windswath_dict[advisory]
         logger.info(f"Fetching {advisory} windswath...")
         windswath_time = min(pd.to_datetime(list(windswaths.keys())))
         windswath = windswaths[
@@ -143,11 +157,22 @@ def main(args):
 
         logger.info("Fetching b-deck track info...")
 
-        df_dt = pd.DataFrame(columns=['date_time'])
-        df_dt['date_time'] = (event.start_date, event.end_date)
 
         logger.info("Fetching BEST windswath...")
         track = event.track(file_deck='b')
+
+        ensemble_start = track.start_date
+        if hr_before_landfall:
+            onland_adv_tracks = track.data[track.data.intersects(shp_US)]
+            onland_date = onland_adv_tracks.datetime.iloc[0]
+            ensemble_start = track.data[
+                track.data.datetime - onland_date >= timedelta(hours=hr_before_landfall)
+            ].datetime.iloc[-1]
+
+        df_dt['date_time'] = (
+            track.start_date, track.end_date, ensemble_start
+        )
+
         windswath_dict = track.wind_swaths(wind_speed=34)
         # NOTE: event.start_date (first advisory date) doesn't
         # necessarily match the windswath key which comes from track
