@@ -100,7 +100,7 @@ def main(args):
     track_to_perturb = VortexTrack.from_file(
             track_path,
             start_date=perturb_start,
-            forecast_time=perturb_start,
+            forecast_time=perturb_start if advisory != 'BEST' else None,
             end_date=model_end_time,
             file_deck=file_deck,
             advisories=[advisory],
