@@ -43,7 +43,7 @@ def main(args):
     is_past_forecast = args.past_forecast
     hr_before_landfall = args.hours_before_landfall
 
-    if is_past_forecast and hr_before_landfall < 0:
+    if hr_before_landfall < 0:
         hr_before_landfall = 48
 
     ne_low = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
@@ -166,7 +166,7 @@ def main(args):
             onland_adv_tracks = track.data[track.data.intersects(shp_US)]
             onland_date = onland_adv_tracks.datetime.iloc[0]
             ensemble_start = track.data[
-                track.data.datetime - onland_date >= timedelta(hours=hr_before_landfall)
+                onland_date - track.data.datetime >= timedelta(hours=hr_before_landfall)
             ].datetime.iloc[-1]
 
         df_dt['date_time'] = (
