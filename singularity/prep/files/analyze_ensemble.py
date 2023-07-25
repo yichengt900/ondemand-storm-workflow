@@ -47,19 +47,28 @@ def main(args):
 
 
 def analyze(tracks_dir, analyze_dir):
+
+    mann_coefs = [0.025, 0.05, 0.1]
+    for mann_coef in mann_coefs:
+        _analyze(tracks_dir, analyze_dir, mann_coef)
+
+
+def _analyze(tracks_dir, analyze_dir, mann_coef)
+
     # KL parameters
     variance_explained = 0.9999
     # subsetting parameters
     isotach = 34  # -kt wind swath of the cyclone
     depth_bounds = 25.0
     point_spacing = None
-    node_status_mask = 'always_wet'
+    node_status_mask = None
+    k_neighbors = 1
+    idw_order = 1
+
     # analysis type
     variable_name = 'zeta_max'
     use_depth = True  # for depths
-    # use_depth = False   # for elevations
-    log_space = False  # normal linear space
-    # log_space = True  # use log-scale to force surrogate to positive values only
+    log_space = False  # use log-scale to keep depths positive
     training_runs = 'korobov'
     validation_runs = 'random'
     # PC parameters
@@ -92,15 +101,21 @@ def analyze(tracks_dir, analyze_dir):
     make_percentile_plot = True
 
     save_plots = True
+    show_plots = False
 
     storm_name = None
 
     if log_space:
-        output_directory = analyze_dir / f'outputs_log_{regression_name}'
+        output_directory = (
+            analyze_dir / f'log_k{k_neighbors}_p{idw_order}_n{mann_coef}'
+        )
     else:
-        output_directory = analyze_dir / f'outputs_linear_{regression_name}'
+        output_directory = (
+            analyze_dir / f'linear_k{k_neighbors}_p{idw_order}_n{mann_coef}'
+        )
     if not output_directory.exists():
         output_directory.mkdir(parents=True, exist_ok=True)
+
 
     subset_filename = output_directory / 'subset.nc'
     kl_filename = output_directory / 'karhunen_loeve.pkl'
@@ -184,10 +199,9 @@ def analyze(tracks_dir, analyze_dir):
             variable=variable_name,
             maximum_depth=depth_bounds,
             wind_swath=[storm_name, isotach],
-            node_status_selection={
-                'mask': node_status_mask,
-                'runs': training_perturbations['run'],
-            },
+            node_status_selection=None
+            if node_status_mask is None
+            else {'mask': node_status_mask, 'runs': training_perturbations['run'],},
             point_spacing=point_spacing,
             output_filename=subset_filename,
         )
@@ -207,12 +221,28 @@ def analyze(tracks_dir, analyze_dir):
     LOGGER.info(f'total {training_set.shape} training samples')
     LOGGER.info(f'total {validation_set.shape} validation samples')
 
-    training_set_adjusted = training_set.copy(deep=True)
+    if node_status_mask == 'always_wet':
+        training_set_adjusted = training_set.copy(deep=True)
+    else:
+        # make an adjusted training set for dry areas..
+        training_set_adjusted = extrapolate_water_elevation_to_dry_areas(
+            da=training_set,
+            k_neighbors=k_neighbors,
+            idw_order=idw_order,
+            compute_headloss=True,
+            mann_coef=mann_coef,
+            u_ref=0.4,
+            d_ref=1,
+        )
 
     if use_depth:
-        training_set_adjusted += training_set_adjusted['depth']  # + adjusted_min_depth
+        training_set_adjusted += training_set_adjusted['depth']
 
     if log_space:
+        training_depth_adjust = numpy.fmax(
+            0, min_depth - training_set_adjusted.min(axis=0)
+        )
+        training_set_adjusted += training_depth_adjust
         training_set_adjusted = numpy.log(training_set_adjusted)
 
     # Evaluating the Karhunen-Loeve expansion
@@ -268,7 +298,9 @@ def analyze(tracks_dir, analyze_dir):
 
         plot_kl_surrogate_fit(
             kl_fit=kl_fit,
-            output_filename=output_directory / 'kl_surrogate_fit.png' if save_plots else None,
+            output_filename=output_directory / 'kl_surrogate_fit.png'
+            if save_plots
+            else None,
         )
 
     # convert the KL surrogate model to the overall surrogate at each node
@@ -303,7 +335,7 @@ def analyze(tracks_dir, analyze_dir):
             validation_set=validation_set,
             validation_perturbations=validation_perturbations,
             convert_from_log_scale=log_space,
-            convert_from_depths=use_depth,
+            convert_from_depths=training_depth_adjust.values if log_space else use_depth,
             minimum_allowable_value=min_depth if use_depth else None,
             element_table=elements if point_spacing is None else None,
             filename=validation_filename,
@@ -323,14 +355,14 @@ def analyze(tracks_dir, analyze_dir):
         )
 
     if make_percentile_plot:
-        percentiles = [10, 50, 90]
+        percentiles = [10, 30, 50, 70, 90]
         node_percentiles = percentiles_from_surrogate(
             surrogate_model=surrogate_model,
             distribution=distribution,
             training_set=validation_set,
             percentiles=percentiles,
             convert_from_log_scale=log_space,
-            convert_from_depths=use_depth,
+            convert_from_depths=training_depth_adjust.values if log_space else use_depth,
             minimum_allowable_value=min_depth if use_depth else None,
             element_table=elements if point_spacing is None else None,
             filename=percentile_filename,
@@ -341,6 +373,10 @@ def analyze(tracks_dir, analyze_dir):
             perc_list=percentiles,
             output_directory=output_directory if save_plots else None,
         )
+
+    if show_plots:
+        LOGGER.info('showing plots')
+        pyplot.show()
 
 
 if __name__ == '__main__':
