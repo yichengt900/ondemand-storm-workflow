@@ -27,14 +27,13 @@ tag=${storm}_${year}_${uuid}
 run_dir=$(init $tag)
 echo $run_dir
 
-# TODO: Make past-forecast an option
 singularity run $SINGULARITY_BINDFLAGS $L_IMG_DIR/info.sif \
     --date-range-outpath $run_dir/setup/dates.csv \
     --track-outpath $run_dir/nhc_track/hurricane-track.dat \
     --swath-outpath $run_dir/windswath \
     --station-data-outpath $run_dir/coops_ssh/stations.nc \
     --station-location-outpath $run_dir/setup/stations.csv \
-    --past-forecast \
+    $(if [ $past_forecast == 1 ]; then echo "--past-forecast"; fi) \
     --hours-before-landfall $hr_prelandfall \
     $storm $year
 
