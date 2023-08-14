@@ -23,8 +23,8 @@ From: ubuntu:22.10
 
 
     # Install SCHISM
-    git clone https://github.com/schism-dev/schism.git
-    git -C schism checkout ddf1564
+    git clone https://github.com/SorooshMani-NOAA/schism.git
+    git -C schism checkout a0817a8
     mkdir -p schism/build
     PREV_PWD=$PWD
     cd schism/build
