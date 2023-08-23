@@ -88,6 +88,12 @@ def main(args):
                 +" hours before landfall forecast..."
             )
             onland_adv_tracks = track.data[track.data.intersects(shp_US)]
+            if onland_adv_tracks.empty:
+                # If it doesn't landfall on US, check with other countries
+                onland_adv_tracks = track.data[
+                    track.data.intersects(ne_low.unary_union)
+                ]
+
             candidates = onland_adv_tracks.groupby('track_start_time').nth(0).reset_index()
             candidates['timediff'] = candidates.datetime - candidates.track_start_time
             forecast_start = candidates[
@@ -160,10 +166,21 @@ def main(args):
 
         logger.info("Fetching BEST windswath...")
         track = event.track(file_deck='b')
+        # Drop duplicate rows based on isotach and time without minutes
+        # (PaHM doesn't take minutes into account)
+        gdf_track = track.data
+        gdf_track.datetime = gdf_track.datetime.dt.floor('h')
+        gdf_track = gdf_track.drop_duplicates(subset=['datetime', 'isotach_radius'], keep='last')
+        track = VortexTrack(storm=gdf_track, file_deck='b', advisories=['BEST'])
 
         ensemble_start = track.start_date
         if hr_before_landfall:
             onland_adv_tracks = track.data[track.data.intersects(shp_US)]
+            if onland_adv_tracks.empty:
+                # If it doesn't landfall on US, check with other countries
+                onland_adv_tracks = track.data[
+                    track.data.intersects(ne_low.unary_union)
+                ]
             onland_date = onland_adv_tracks.datetime.iloc[0]
             ensemble_start = track.data[
                 onland_date - track.data.datetime >= timedelta(hours=hr_before_landfall)
@@ -193,6 +210,8 @@ def main(args):
 
     logger.info("Writing relevant data to files...")
     df_dt.to_csv(date_out)
+    # Remove duplicate entries for similar isotach and time
+    # (e.g. Dorian19 and Ian22 best tracks)
     track.to_file(track_out)
     gs = gpd.GeoSeries(windswath)
     gdf_windswath = gpd.GeoDataFrame(
