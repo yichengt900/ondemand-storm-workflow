@@ -69,13 +69,6 @@ def main(args):
             pairing_hgrid=mesh_file
         )
     )
-    forcing_configurations.append(
-        BestTrackForcingJSON(
-            nhc_code=f'{args.name}{args.year}',
-            interval_seconds=3600,
-            nws=20
-        )
-    )
 
 
     platform = Platform.LOCAL
@@ -165,6 +158,16 @@ def main(args):
                 # Overwrites the perturbed-segment-only file
                 full_track.to_csv(pt, index=False, header=False)
 
+    # NOTE: Point to the original.22 file so that it is used for
+    # spinup too instead of spinup trying to download!
+    forcing_configurations.append(
+        BestTrackForcingJSON(
+            nhc_code=f'{args.name}{args.year}',
+            interval_seconds=3600,
+            nws=20,
+            fort22_filename=workdir/'track_files'/'original.22',
+        )
+    )
 
     run_config_kwargs = {
         'mesh_directory': mesh_dir,
