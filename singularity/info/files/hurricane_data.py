@@ -11,6 +11,7 @@ import logging
 import pathlib
 import argparse
 import tempfile
+import numpy as np
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -42,6 +43,7 @@ def main(args):
     sta_loc_out = args.station_location_outpath
     is_past_forecast = args.past_forecast
     hr_before_landfall = args.hours_before_landfall
+    lead_times = args.lead_times
 
     if hr_before_landfall < 0:
         hr_before_landfall = 48
@@ -57,6 +59,22 @@ def main(args):
         event = StormEvent(name_or_code, year)
     nhc_code = event.nhc_code
     logger.info("Fetching a-deck track info...")
+
+    prescribed = None
+    if lead_times is not None and lead_times.is_file():
+        leadtime_dict = pd.read_json(lead_times, orient='index')
+        leadtime_table = leadtime_dict.drop(columns='leadtime').merge(
+            leadtime_dict.leadtime.apply(
+                lambda x: pd.Series({v: k for k, v in x.items()})
+            ).apply(pd.to_datetime, format='%Y%m%d%H'),
+            left_index=True,
+            right_index=True
+        ).set_index('ALnumber')
+
+        if nhc_code.lower() in leadtime_table.index:
+            storm_all_times = leadtime_table.loc[nhc_code.lower()].dropna()
+            if hr_before_landfall in storm_all_times:
+                prescribed = storm_all_times[hr_before_landfall]
 
     # TODO: Get user input for whether its forecast or now!
     now = datetime.now()
@@ -87,18 +105,25 @@ def main(args):
                 f"Creating {advisory} track for {hr_before_landfall}"
                 +" hours before landfall forecast..."
             )
-            onland_adv_tracks = track.data[track.data.intersects(shp_US)]
-            if onland_adv_tracks.empty:
-                # If it doesn't landfall on US, check with other countries
-                onland_adv_tracks = track.data[
-                    track.data.intersects(ne_low.unary_union)
-                ]
+            if prescribed is not None:
+                start_times = track.data.track_start_time.unique()
+                leastdiff_idx = np.argmin(abs(start_times - prescribed))
+                forecast_start = start_times[leastdiff_idx]
 
-            candidates = onland_adv_tracks.groupby('track_start_time').nth(0).reset_index()
-            candidates['timediff'] = candidates.datetime - candidates.track_start_time
-            forecast_start = candidates[
-                candidates['timediff'] >= timedelta(hours=hr_before_landfall)
-            ].track_start_time.iloc[-1]
+
+            else:
+                onland_adv_tracks = track.data[track.data.intersects(shp_US)]
+                if onland_adv_tracks.empty:
+                    # If it doesn't landfall on US, check with other countries
+                    onland_adv_tracks = track.data[
+                        track.data.intersects(ne_low.unary_union)
+                    ]
+
+                candidates = onland_adv_tracks.groupby('track_start_time').nth(0).reset_index()
+                candidates['timediff'] = candidates.datetime - candidates.track_start_time
+                forecast_start = candidates[
+                    candidates['timediff'] >= timedelta(hours=hr_before_landfall)
+                ].track_start_time.iloc[-1]
 
             gdf_track = track.data[track.data.track_start_time == forecast_start]
             # Append before track from previous forecasts:
@@ -173,21 +198,27 @@ def main(args):
         gdf_track = gdf_track.drop_duplicates(subset=['datetime', 'isotach_radius'], keep='last')
         track = VortexTrack(storm=gdf_track, file_deck='b', advisories=['BEST'])
 
-        ensemble_start = track.start_date
+        perturb_start = track.start_date
         if hr_before_landfall:
-            onland_adv_tracks = track.data[track.data.intersects(shp_US)]
-            if onland_adv_tracks.empty:
-                # If it doesn't landfall on US, check with other countries
-                onland_adv_tracks = track.data[
-                    track.data.intersects(ne_low.unary_union)
-                ]
-            onland_date = onland_adv_tracks.datetime.iloc[0]
-            ensemble_start = track.data[
-                onland_date - track.data.datetime >= timedelta(hours=hr_before_landfall)
-            ].datetime.iloc[-1]
+            if prescribed is not None:
+                # NOTE: track_start_time is the genesis for best track
+                times = track.data.datetime.unique()
+                leastdiff_idx = np.argmin(abs(times - prescribed))
+                perturb_start = times[leastdiff_idx]
+            else:
+                onland_adv_tracks = track.data[track.data.intersects(shp_US)]
+                if onland_adv_tracks.empty:
+                    # If it doesn't landfall on US, check with other countries
+                    onland_adv_tracks = track.data[
+                        track.data.intersects(ne_low.unary_union)
+                    ]
+                onland_date = onland_adv_tracks.datetime.iloc[0]
+                perturb_start = track.data[
+                    onland_date - track.data.datetime >= timedelta(hours=hr_before_landfall)
+                ].datetime.iloc[-1]
 
         df_dt['date_time'] = (
-            track.start_date, track.end_date, ensemble_start
+            track.start_date, track.end_date, perturb_start
         )
 
         windswath_dict = track.wind_swaths(wind_speed=34)
@@ -278,6 +309,13 @@ if __name__ == '__main__':
         "--hours-before-landfall",
         help="Get forecast data for a past storm at this many hour before landfall",
         type=int,
+        default=-1,
+    )
+
+    parser.add_argument(
+        "--lead-times",
+        type=pathlib.Path,
+        help="Helper file for prescribed lead times",
     )
 
     args = parser.parse_args()
