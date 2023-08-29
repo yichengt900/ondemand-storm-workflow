@@ -35,6 +35,7 @@ singularity run $SINGULARITY_BINDFLAGS $L_IMG_DIR/info.sif \
     --station-location-outpath $run_dir/setup/stations.csv \
     $(if [ $past_forecast == 1 ]; then echo "--past-forecast"; fi) \
     --hours-before-landfall $hr_prelandfall \
+    --lead-times $L_LEADTIMES_DATASET \
     $storm $year
 
 
