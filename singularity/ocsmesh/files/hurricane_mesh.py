@@ -115,9 +115,9 @@ class HurricaneMesher:
         this_parser = sub_parser.add_parser(self.script_name)
 
         this_parser.add_argument(
-            "--lo-dem", nargs='+', help="Path to low resolution DEMS")
+            "--lo-dem", nargs='+', help="Path to low resolution DEMS", type=pathlib.Path)
         this_parser.add_argument(
-            "--hi-dem", nargs='+', help="Path to high resolution DEMS")
+            "--hi-dem", nargs='+', help="Path to high resolution DEMS", type=pathlib.Path)
 
         this_parser.add_argument(
             "--nprocs", type=int, help="Number of parallel threads to use when "
@@ -163,15 +163,22 @@ class HurricaneMesher:
 
         this_parser.add_argument(
             "--shapes-dir",
-            help="top-level directory that contains shapefiles")
+            help="top-level directory that contains shapefiles",
+            type=pathlib.Path
+        )
 
         this_parser.add_argument(
             "--windswath",
-            help="path to NHC windswath shapefile")
+            help="path to NHC windswath shapefile",
+            type=pathlib.Path
+        )
 
         # Similar to the argument for SubsetAndCombine
         this_parser.add_argument(
-            "--out", help="mesh operation output directory")
+            "--out",
+            help="mesh operation output directory",
+            type=pathlib.Path
+        )
 
     def run(self, args):
 
