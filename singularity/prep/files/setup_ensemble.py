@@ -33,6 +33,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def _fix_nwm_issue(ensemble_dir):
+
+    # Workardoun for hydrology param bug #34
+
+    schism_dirs = [ensemble_dir / 'spinup', *ensemble_dir.glob('runs/*')]
+    for pth in schism_dirs:
+        nm_list = f90nml.read(pth / 'param.nml')
+        nm_list['opt']['if_source'] = 1
+        nm_list.write(pth / 'param.nml', force=True)
+
+
 def main(args):
 
     track_path = args.track_file
@@ -199,6 +210,7 @@ def main(args):
         'parallel': True
     })
 
+    _fix_nwm_issue(workdir)
     if use_wwm:
         wwm.setup_wwm(mesh_file, workdir, ensemble=True)
 
