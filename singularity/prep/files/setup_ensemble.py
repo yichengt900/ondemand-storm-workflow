@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
+import f90nml
 import geopandas as gpd
 import pandas as pd
 from coupledmodeldriver import Platform
