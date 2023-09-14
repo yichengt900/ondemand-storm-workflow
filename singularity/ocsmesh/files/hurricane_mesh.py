@@ -200,7 +200,7 @@ class HurricaneMesher:
         lo_res_dems = args.lo_dem
         hi_res_dems = args.hi_dem
 #        hi_tiles = args.hi_tiles
-        shp_dir = args.shapes_dir
+        shp_dir = pathlib.Path(args.shapes_dir)
         hurr_info = args.windswath
         out_dir = args.out
 
