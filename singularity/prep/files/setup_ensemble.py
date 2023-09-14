@@ -197,6 +197,7 @@ def main(args):
         **run_config_kwargs,
     )
     run_configuration['schism']['hgrid_path'] = mesh_file
+    run_configuration['schism']['attributes']['ncor'] = 1
 
     run_configuration.write_directory(
         directory=workdir, absolute=False, overwrite=False,

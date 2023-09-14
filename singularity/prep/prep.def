@@ -13,7 +13,9 @@ From: continuumio/miniconda3:23.3.1-0-alpine
 %post
     ENV_NAME=prep
 
-    apk update && apk upgrade && apk add git
+    apk update && apk upgrade && apk add \
+        git \
+        libarchive
 
     conda install mamba -n base -c conda-forge 
     mamba update --name base --channel defaults conda 
