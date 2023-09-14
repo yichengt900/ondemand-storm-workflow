@@ -73,6 +73,8 @@ def main(args):
 
         if nhc_code.lower() in leadtime_table.index:
             storm_all_times = leadtime_table.loc[nhc_code.lower()].dropna()
+            if len(storm_all_times.shape) > 1:
+                storm_all_times = storm_all_times.iloc[0]
             if hr_before_landfall in storm_all_times:
                 prescribed = storm_all_times[hr_before_landfall]
 
