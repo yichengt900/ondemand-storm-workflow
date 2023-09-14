@@ -18,7 +18,8 @@ From: continuumio/miniconda3:23.3.1-0-alpine
         g++ \
         make \
         cmake \
-        libstdc++
+        libstdc++ \
+        libarchive
 
     conda install mamba -n base -c conda-forge 
     mamba update --name base --channel defaults conda 
@@ -34,8 +35,10 @@ From: continuumio/miniconda3:23.3.1-0-alpine
     conda run -n $ENV_NAME --no-capture-output \
         pip install ./jigsaw-python
     rm -rf jigsaw-python
+    git clone https://github.com/noaa-ocs-modeling/ocsmesh
+    git -C ocsmesh checkout  69b8556 #subset fix branch
     conda run -n $ENV_NAME --no-capture-output \
-        pip install ocsmesh>=1.0.5
+        pip install ./ocsmesh
     
     conda clean --all && apk del \
         git \
