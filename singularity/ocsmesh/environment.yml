@@ -2,20 +2,20 @@ name: icogsc
 channels:
   - conda-forge
 dependencies:
-  - python=3.9
+  - python<3.11
   - gdal
   - geos
   - proj
   - netcdf4
   - udunits2
   - pyproj
-  - shapely>=1.8,<2
+  - shapely
   - rasterio
   - fiona
   - pygeos
   - geopandas
   - utm
-  - scipy<1.8
+  - scipy
   - numba
   - numpy>=1.21
   - matplotlib
