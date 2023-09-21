@@ -54,8 +54,9 @@ def break_quads(pyschism_mesh: Gr3) -> Gr3 | Gr3Field:
         new_mesh = deepcopy(pyschism_mesh)
 
     else:
-        tmp = np.hstack((quads, quads[0, 0][None, None]))
-        broken = np.vstack((tmp[:, :3], tmp[:, 2:]))
+        tmp = quads[:,2:]
+        tmp = np.insert(tmp, 0, quads[:, 0], axis=1)
+        broken = np.vstack((quads[:, :3], tmp))
         trias = pyschism_mesh.triangles
         final_trias = np.vstack((trias, broken))
         # NOTE: Node IDs and indexs are the same as before
