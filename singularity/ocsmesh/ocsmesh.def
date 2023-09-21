@@ -36,7 +36,7 @@ From: continuumio/miniconda3:23.3.1-0-alpine
         pip install ./jigsaw-python
     rm -rf jigsaw-python
     git clone https://github.com/noaa-ocs-modeling/ocsmesh
-    git -C ocsmesh checkout  6dbd530 #subset fix branch
+    git -C ocsmesh checkout  c80221e #subset fix branch
     conda run -n $ENV_NAME --no-capture-output \
         pip install ./ocsmesh
     
